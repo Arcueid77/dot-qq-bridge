@@ -77,7 +77,7 @@
       "package": "dot-bridge-tunnel",
       "file": "src/catalog.js",
       "source_sha256": "00c03f5236606871e24e38238c056e8004d269c107794a695a9ef1ca9e28dbd7",
-      "packaged_sha256": "6486cc2512f57391d074fb143e87e7f572a4178a89ee3e8341ee4bbf2ffcc9ba",
+      "packaged_sha256": "26711b5ec95856c796a069e5e94cbdc60e121b3f23db435ffbf40c7d5f883916",
       "adaptation": "One shared bounded Lark catalog; QQ contract unchanged."
     },
     {
