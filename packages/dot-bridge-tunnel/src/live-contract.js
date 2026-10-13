@@ -1,5 +1,6 @@
 // Closed protocol projection, not a reverse proxy. No provider identity is an input.
 import { isIP } from 'node:net';
+import { LARK_TOOL_NAMES, validateLarkArguments, projectLarkResult } from './lark-contract.js';
 import { BridgeError, object } from './common.js';
 import { projectCallbackTransportStatus, callbackTransportStatusSchema, TRANSPORT_ERROR_CODES } from '../../dot-bridge-transport/index.js';
 export const CHANNELS = Object.freeze(['qq', 'lark']);
@@ -33,7 +34,7 @@ function signingSecret(value) {
   try { if (bytes.length < 24 || bytes.length > 64 || bytes.toString('base64').replace(/=+$/, '') !== encoded.replace(/=+$/, '')) throw new BridgeError('Invalid webhook signing secret'); }
   finally { bytes.fill(0); }
 }
-const toolChannels = Object.freeze({check_bridge_setup:'qq',get_qq_message:'qq',reply_to_qq:'qq',check_lark_readiness:'lark',get_lark_message:'lark',reply_to_lark:'lark'});
+const toolChannels = Object.freeze({check_bridge_setup:'qq',get_qq_message:'qq',reply_to_qq:'qq',check_lark_readiness:'lark',...Object.fromEntries([...LARK_TOOL_NAMES].map(name=>[name,'lark']))});
 const eventChannels = Object.freeze({'qq.message.created':'qq','lark.message.created':'lark'});
 export function validateToolCall(config, params) {
   object(params,['name','arguments','_meta'],['name','arguments']);
@@ -51,6 +52,7 @@ export function validateToolCall(config, params) {
     return {channel,name:params.name,arguments:args.callback_url === undefined ? {} : {callback_url:args.callback_url}};
   }
   if (!live) throw forbidden();
+  if(channel==='lark'){try{return {channel,name:params.name,arguments:validateLarkArguments(params.name,args)};}catch{throw new BridgeError('Invalid Lark tool arguments');}}
   const reply = params.name.startsWith('reply_to_');
   object(args,reply ? ['message_id','text'] : ['message_id'],reply ? ['message_id','text'] : ['message_id']);
   boundedString(args.message_id,256);
@@ -65,7 +67,7 @@ export function validateEventCall(config, method, params) {
   const channel = Object.hasOwn(eventChannels,params.name) ? eventChannels[params.name] : undefined;
   if (!channel || !enabled(config,channel)) throw forbidden();
   object(params.arguments,['conversation'],['conversation']);
-  if (params.arguments.conversation !== 'owner') throw forbidden();
+  if (params.arguments.conversation !== 'owner' && !(channel==='lark'&&params.arguments.conversation==='configured')) throw forbidden();
   const subscribe = method === 'events/subscribe';
   object(params.delivery,subscribe ? ['mode','url','secret'] : ['mode','url'],subscribe ? ['mode','url','secret'] : ['mode','url']);
   if (params.delivery.mode !== 'webhook') throw new BridgeError('Only webhook delivery is supported');
@@ -75,7 +77,7 @@ export function validateEventCall(config, method, params) {
     if (params.cursor !== undefined && params.cursor !== null) throw new BridgeError('Replay cursors are unsupported');
     if (params.ttlMs !== undefined && params.ttlMs !== null && (!Number.isSafeInteger(params.ttlMs) || params.ttlMs <= 0 || params.ttlMs > MAX_LEASE_MS)) throw new BridgeError('Invalid bounded ttlMs');
   }
-  return {channel,params:{name:params.name,arguments:{conversation:'owner'},delivery:{mode:'webhook',url:params.delivery.url,...(subscribe ? {secret:params.delivery.secret} : {})},
+  return {channel,params:{name:params.name,arguments:{conversation:params.arguments.conversation},delivery:{mode:'webhook',url:params.delivery.url,...(subscribe ? {secret:params.delivery.secret} : {})},
     ...(subscribe && Object.hasOwn(params,'cursor') ? {cursor:params.cursor} : {}),...(subscribe && Object.hasOwn(params,'ttlMs') ? {ttlMs:params.ttlMs} : {})}};
 }
 function iso(value) {
@@ -96,7 +98,7 @@ function projectPendingMessage(value,transport,configured) {
   return Date.parse(deadline)>Date.now()?{message_id:id,reply_deadline:deadline}:null;
 }
 function projectPendingMessages(value,transport,configured) {
-  if(transport.mode!=='owner_scoped_proxy'||!Array.isArray(value)||value.length>10||(!configured&&value.length))throw unavailable();
+  if(!['owner_scoped_proxy','direct'].includes(transport.mode)||!Array.isArray(value)||value.length>10||(!configured&&value.length))throw unavailable();
   const ids=new Set(),now=Date.now(),pending=[];
   for(const item of value){
     object(item,['message_id','reply_deadline','reply_status'],['message_id','reply_deadline','reply_status']);
@@ -109,6 +111,7 @@ function projectPendingMessages(value,transport,configured) {
 }
 export function projectToolResult(call,result,live) {
   try {
+    if(call.channel==='lark'&&LARK_TOOL_NAMES.has(call.name))return projectLarkResult(call,result);
     if (!record(result) || result.isError !== false || !record(result.structuredContent)) throw unavailable();
     const value=result.structuredContent;
     if (call.name === 'check_bridge_setup') {

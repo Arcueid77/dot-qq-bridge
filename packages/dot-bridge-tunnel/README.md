@@ -279,6 +279,18 @@ requirements for that adapter; its presence alone is not independent proof.
 
 ## Verification
 
+The optional Lark experience contract lives only in `src/lark-contract.js` and is
+imported by the sibling backend. It adds context, bounded MCP attachments,
+media replies and genuine generated-text card updates. `conversation:configured`
+is Lark-only; the backend's protected policy decides group/member/trigger scope.
+QQ catalogs, credentials and provider gates do not change. Only an explicitly
+live Lark channel exposes these tools. Unknown reply acknowledgements remain
+terminal. Ordinary direct callback readiness can return bounded pending references.
+Details and permission/configuration gates are in the sibling Lark
+`docs/chat-experience.md`. Tests include the actual sibling backend with synthetic
+groups, images, bot-info, CardKit and callback responses; they do not prove live
+platform grants, model content support or end-to-end delivery.
+
 ```sh
 node --test
 ```

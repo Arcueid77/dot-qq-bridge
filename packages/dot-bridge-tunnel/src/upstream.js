@@ -5,7 +5,7 @@ import { validateConfig } from './config.js';
 import { canonicalKey } from './auth.js';
 import { expectedBackendTools, liveEventDefinitions, sameSchema, matchesBackendOutputSchema } from './catalog.js';
 import { record, unavailable, enabled, validateToolCall, validateEventCall, projectToolResult, projectSubscription, projectUpstreamError, projectLarkPreflight } from './live-contract.js';
-const MAX_RESPONSE = 32768, MAX_REQUEST = 32768;
+const MAX_RESPONSE = 524288, MAX_REQUEST = 262144;
 const empty = value => record(value) && Object.keys(value).length === 0;
 export function createUpstreamClient(input, keys, { approvedLive = false } = {}) {
   const config=validateConfig(input);
@@ -25,7 +25,9 @@ export function createUpstreamClient(input, keys, { approvedLive = false } = {})
     }
     if (method.startsWith('events/') && method !== 'events/list') { const checked=validateEventCall(config,method,params);if(checked.channel !== routeName) return Promise.reject(unavailable()); }
     const body=JSON.stringify({jsonrpc:'2.0',id:'readiness',method,params:{...params,_meta:metadata()}});
-    if(Buffer.byteLength(body)>MAX_REQUEST)return Promise.reject(unavailable());
+    const requestLimit=params.name==='reply_lark_media'?12*1024*1024:routeName==='lark'?MAX_REQUEST:32768;
+    const responseLimit=params.name==='get_lark_attachment'?12*1024*1024:routeName==='lark'?MAX_RESPONSE:32768;
+    if(Buffer.byteLength(body)>requestLimit)return Promise.reject(unavailable());
     return new Promise((resolve,reject)=>{
       let done=false,timer,req;
       const finish=(error,result)=>{if(done)return;done=true;clearTimeout(timer);active.delete(req);if(error){req?.destroy();reject(error instanceof Error ? error : unavailable());}else resolve(result);};
@@ -34,9 +36,9 @@ export function createUpstreamClient(input, keys, { approvedLive = false } = {})
           headers:{host:`127.0.0.1:${route.port}`,'content-type':'application/json',accept:'application/json, text/event-stream','content-length':Buffer.byteLength(body),connection:'close',
             'mcp-protocol-version':VERSION,'mcp-method':method,...(method === 'tools/call' ? {'mcp-name':params.name} : {}),[SERVICE_HEADER]:route.key}},res=>{
           if (![200,400,401,403,404,409,429,500,502,503].includes(res.statusCode) || !/^application\/json(?:\s*;|$)/i.test(res.headers['content-type'] ?? '') ||
-              (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity') || Number(res.headers['content-length'])>MAX_RESPONSE) {finish(true);res.destroy();return;}
+              (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity') || Number(res.headers['content-length'])>responseLimit) {finish(true);res.destroy();return;}
           let size=0;const chunks=[];
-          res.on('data',chunk=>{size+=chunk.length;if(size>MAX_RESPONSE){finish(true);res.destroy();}else chunks.push(chunk);});
+          res.on('data',chunk=>{size+=chunk.length;if(size>responseLimit){finish(true);res.destroy();}else chunks.push(chunk);});
           res.on('error',()=>finish(true));res.on('aborted',()=>finish(true));
           res.on('end',()=>{if(done)return;try{
             const value=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(Buffer.concat(chunks)));
@@ -50,7 +52,7 @@ export function createUpstreamClient(input, keys, { approvedLive = false } = {})
         // No automatic retries: a timed-out mutation may already have committed.
         // The owner Lark reply waits for a token and one provider acknowledgement
         // (up to 10s each). Read/catalog budgets remain short and unchanged.
-        const timeoutMs=method==='events/subscribe'?35000:method==='tools/call'&&params.name==='reply_to_lark'?30000:3000;
+        const timeoutMs=method==='tools/call'&&params.name==='get_lark_attachment'?45000:method==='events/subscribe'?35000:method==='tools/call'&&params.name==='reply_to_lark'?30000:method==='tools/call'&&params.name==='get_lark_context'?25000:3000;
         timer=setTimeout(()=>finish(true),timeoutMs);req.end(body);
       }catch{finish(true);}
     });

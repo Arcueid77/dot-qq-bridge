@@ -77,7 +77,7 @@ test('synthetic actual sibling live catalogs and pending-callback preflight; no 
   const qa=await qq.listen(0),la=await lark.listen(0);
   const app=createApp({host:'127.0.0.1',port:8789,owner:OWNER,ingressKeyFile:keyFiles[0],qqKeyFile:keyFiles[1],larkKeyFile:keyFiles[2],qqPort:qa.port,larkPort:la.port,operation:'live',liveChannels:['qq','lark']},{approvedLive:true});beforeFixtureCleanup(t,()=>app.close());const address=await app.listen(0);
   const post=(method,params={})=>new Promise((resolve,reject)=>{const req=http.request({host:'127.0.0.1',port:address.port,path:'/mcp',method:'POST',agent:false,headers:{[SERVICE_HEADER]:keyValues[0],'content-type':'application/json',accept:'application/json, text/event-stream','mcp-method':method,'mcp-protocol-version':VERSION,...(method==='tools/call'?{'mcp-name':params.name}:{})}},res=>{const chunks=[];res.on('data',x=>chunks.push(x));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks))}));});req.on('error',reject);req.end(JSON.stringify({jsonrpc:'2.0',id:1,method,params:{...params,_meta:metadata()}}));});
-  const catalog=await post('tools/list');assert.equal(catalog.status,200);assert.equal(catalog.body.result.tools.length,6);
+  const catalog=await post('tools/list');assert.equal(catalog.status,200);assert.equal(catalog.body.result.tools.length,12);
   const events=await post('events/list');assert.equal(events.status,200);assert.equal(events.body.result.events.length,2);
   const callback='https://callback.example.test/private-path?fixture-secret=canary';
   for(const [name,policy]of [['check_bridge_setup','blocked'],['check_lark_readiness','not_allowlisted']]){

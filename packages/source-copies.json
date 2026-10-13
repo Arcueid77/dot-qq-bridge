@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Source snapshot provenance retained; packaged hashes cover explicit layout, shared-test extraction and native Windows adaptations.",
+  "description": "Original snapshot source hashes retained; packaged hashes include explicitly reviewed layout, platform, transport and authored Lark experience adaptations.",
   "files": [
     {
       "package": "dot-bridge-transport",
@@ -56,15 +56,15 @@
       "package": "dot-bridge-tunnel",
       "file": "README.md",
       "source_sha256": "e954397b492a5c36602fb86f6c59a49044921d182d905a91db2aee58ddb32903",
-      "packaged_sha256": "21ec64550f38976292889ff1ccf9f7d60ee5f1621628605c20a57e8e4591c987",
-      "adaptation": "Document exact owner-only QQ singular/Lark bounded plural pending references on existing setup tools with ordinary output and timeout semantics unchanged."
+      "packaged_sha256": "3d3284c2b53d30dda5bc5a7f1e5bf9529585c2fc067775a30995e5a597b3ff80",
+      "adaptation": "Document Lark rich/group scope, protected configuration and actual sibling coverage."
     },
     {
       "package": "dot-bridge-tunnel",
       "file": "package.json",
       "source_sha256": "465890f4f56d9f537264588a4da4d9f98354f4931ff94d8e1fa863076167d01e",
-      "packaged_sha256": "465890f4f56d9f537264588a4da4d9f98354f4931ff94d8e1fa863076167d01e",
-      "adaptation": null
+      "packaged_sha256": "6e06994768555659f0422ffcf2e50c667eda85ebfb7f59de9dcf12653fbbc3f1",
+      "adaptation": "Include the authored shared Lark schema in syntax verification."
     },
     {
       "package": "dot-bridge-tunnel",
@@ -77,15 +77,15 @@
       "package": "dot-bridge-tunnel",
       "file": "src/catalog.js",
       "source_sha256": "00c03f5236606871e24e38238c056e8004d269c107794a695a9ef1ca9e28dbd7",
-      "packaged_sha256": "a4d4063fbd8869bc343a4522fe562172df13293c8cfe8f99b775c12aef1b28e1",
-      "adaptation": "Declare strict optional QQ experiment and bounded Lark continuous-owner references; accept only exact known schema variants."
+      "packaged_sha256": "6486cc2512f57391d074fb143e87e7f572a4178a89ee3e8341ee4bbf2ffcc9ba",
+      "adaptation": "One shared bounded Lark catalog; QQ contract unchanged."
     },
     {
       "package": "dot-bridge-tunnel",
       "file": "src/common.js",
       "source_sha256": "a4add04633816e38cebc90b9f09123cfa211feba23ae41145100a99516d028cc",
-      "packaged_sha256": "a4add04633816e38cebc90b9f09123cfa211feba23ae41145100a99516d028cc",
-      "adaptation": null
+      "packaged_sha256": "5217633279adea04d091fad442d9fb93a57c90868a937e82a86547fc1862eef7",
+      "adaptation": "Only the validated rich-result marker can carry attachment content."
     },
     {
       "package": "dot-bridge-tunnel",
@@ -98,8 +98,8 @@
       "package": "dot-bridge-tunnel",
       "file": "src/live-contract.js",
       "source_sha256": "d98f378e515d590c3673105cd9023317fcbf6643a102bafb7e329a5114f020e5",
-      "packaged_sha256": "2c2ec573fb80c3532ac2e1d3b27afc440963a1a5d58bf70783d108edd8cc4ac8",
-      "adaptation": "Project owner-mode pending metadata without body or identity fields; preserve unverified destination and reject malformed/private references."
+      "packaged_sha256": "962e9efb291d4e250004352b7b5776475444160c3952e14b0866fbde05d3ed49",
+      "adaptation": "Validate configured Lark subscriptions and direct pending references without widening QQ or callbacks."
     },
     {
       "package": "dot-bridge-tunnel",
@@ -119,8 +119,8 @@
       "package": "dot-bridge-tunnel",
       "file": "src/server.js",
       "source_sha256": "8fd354f39a8cdadc565f9cc2c6dec0326baa60447527c96ea11d03f2f0a8eb6b",
-      "packaged_sha256": "8fd354f39a8cdadc565f9cc2c6dec0326baa60447527c96ea11d03f2f0a8eb6b",
-      "adaptation": null
+      "packaged_sha256": "c206e1049dc25c2c790608fc16373f68f4321ac59441ecba0712bf0575f55673",
+      "adaptation": "Separate authenticated Lark media body limits and settle body timers once."
     },
     {
       "package": "dot-bridge-tunnel",
@@ -133,8 +133,8 @@
       "package": "dot-bridge-tunnel",
       "file": "src/upstream.js",
       "source_sha256": "1f0f93dbd1218e6ddc85eacd5ae43bc418226a2d528ff2c7b5797a4c858851a9",
-      "packaged_sha256": "24c9a82c39369da69141666401f1f46d5a81fe960b5ffebc04d856c136561fb6",
-      "adaptation": "Use a 30-second budget only for synchronous reply_to_lark; preserve read/subscription deadlines, fixed routing and no retries."
+      "packaged_sha256": "09f4af61f38f8ef432e381067061c878ebd327812bd5676a848cd879c1c2ab33",
+      "adaptation": "Separate bounded Lark media/context sizes and deadlines, with no mutation retries."
     },
     {
       "package": "dot-bridge-tunnel",
@@ -147,15 +147,15 @@
       "package": "dot-bridge-tunnel",
       "file": "test/live.test.js",
       "source_sha256": "46eff005be9dd1169da7986c42dcd2f1e17b8e0fc40ba298ff132571e941b5b4",
-      "packaged_sha256": "4d0db1b41387072db4a95bef566ee731d556a0a65e456d5f3ababed7e35e83a2",
-      "adaptation": "Exercise QQ/Lark metadata mode gates, exact catalog compatibility, bounded current references, no-retry timeouts and truthful formal-owner status."
+      "packaged_sha256": "c41e04d7e02715eb6410957fcd30290b8a2d330f4345ef3a2deba3114de4c0d8",
+      "adaptation": "Regress the expanded Lark catalog and fail-closed hostile projection."
     },
     {
       "package": "dot-bridge-tunnel",
       "file": "test/sibling-contract.test.js",
       "source_sha256": "02b225bcaf3edf651794167950ce68a1f03058db3e1fded24e10de9094973a3b",
-      "packaged_sha256": "2b19e4670aa4dd32fe8b12150831db9c61da165ca9a24e4b8f08b2f27d058211",
-      "adaptation": "Validate actual sibling catalogs, delayed single-message acknowledgements and formal two-message/normal-reply queued lifecycle through authenticated aggregate HTTP with inert providers."
+      "packaged_sha256": "f89c32ee9a41766be2cf46be1e2ca856d6bdc0ccc2da5e6c178005ea28cda201",
+      "adaptation": "Assert actual sibling catalog including the additional Lark tools."
     },
     {
       "package": "dot-bridge-transport",
@@ -212,6 +212,20 @@
       "source_sha256": "83edb4eaf37619fe0cc119f136bba2e91a82433a7c9ef64bf6d276f805fd0ea7",
       "packaged_sha256": "83edb4eaf37619fe0cc119f136bba2e91a82433a7c9ef64bf6d276f805fd0ea7",
       "adaptation": null
+    },
+    {
+      "package": "dot-bridge-tunnel",
+      "file": "src/lark-contract.js",
+      "source_sha256": "6500550ec16327e45dcac9d2d4c99b2994318ac61fe1d6f19ee061f53c413f5a",
+      "packaged_sha256": "6500550ec16327e45dcac9d2d4c99b2994318ac61fe1d6f19ee061f53c413f5a",
+      "adaptation": "Authored Lark context/media/card schemas with strict recipient-free validation and closed content projection."
+    },
+    {
+      "package": "dot-bridge-tunnel",
+      "file": "test/lark-experience.test.js",
+      "source_sha256": "ac729c405fd23aa1c83dfaac44d712135fa0c425595d88d166fcb6a92be50dc8",
+      "packaged_sha256": "ac729c405fd23aa1c83dfaac44d712135fa0c425595d88d166fcb6a92be50dc8",
+      "adaptation": "Actual sibling group, bot-identity, rich-resource and single-card reply integration with synthetic provider data."
     }
   ]
 }

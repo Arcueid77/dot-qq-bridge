@@ -17,4 +17,5 @@ export const loopback = value => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includ
 export const metadata = () => ({ 'io.modelcontextprotocol/protocolVersion': VERSION, 'io.modelcontextprotocol/clientCapabilities': {} });
 export const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result: { resultType: 'complete', ...result,
   _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'dot-bridge-tunnel', version: '0.1.0' } } } });
-export const toolResult = value => ({ content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value, isError: false });
+import { RICH_LARK_RESULT } from './lark-contract.js';
+export const toolResult = value => value?.[RICH_LARK_RESULT] ? {content:value.content,structuredContent:value.value,isError:false} : ({ content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value, isError: false });

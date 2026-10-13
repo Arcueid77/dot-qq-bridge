@@ -12,6 +12,7 @@ import { readConfig, validateConfig } from '../src/config.js';
 import { VERSION, OWNER, SERVICE_HEADER, metadata } from '../src/common.js';
 import { validateMcp } from '../src/protocol.js';
 import { expectedBackendTools, liveEventDefinitions } from '../src/catalog.js';
+import {larkToolDefinitions} from '../src/lark-contract.js';
 import { projectSubscription, projectUpstreamError, MAX_LEASE_MS } from '../src/live-contract.js';
 const KEYS={ingress:Buffer.alloc(32,91).toString('base64url'),qq:Buffer.alloc(32,92).toString('base64url'),lark:Buffer.alloc(32,93).toString('base64url')};
 const SECRET='whsec_'+Buffer.alloc(32,94).toString('base64'),CALLBACK='https://callback.example.test/synthetic-path?fixture=value',CANARY='synthetic-private-metadata-error-token';
@@ -89,7 +90,7 @@ test('live operation and explicit channel subset gate constructors; copied subse
 test('live static catalogs expose exact enabled routes and no upstream text/identity',async t=>{
   const f=await running(t);const discovery=await f.post('server/discover'),catalog=await f.post('tools/list'),events=await f.post('events/list');
   for(const result of [discovery,catalog,events]){assert.equal(result.status,200);assert.equal(result.text.includes(CANARY),false);assert.equal(result.text.includes(SECRET),false);}
-  assert.deepEqual(catalog.body.result.tools.map(x=>x.name),['check_bridge_setup','check_lark_readiness','get_lark_message','reply_to_lark','get_qq_message','reply_to_qq']);
+  assert.deepEqual(catalog.body.result.tools.map(x=>x.name),['check_bridge_setup','check_lark_readiness',...larkToolDefinitions.map(tool=>tool.name),'get_qq_message','reply_to_qq']);
   assert.deepEqual(events.body.result.events.map(x=>x.name),['lark.message.created','qq.message.created']);
   assert.equal(f.qq.state.callbackRequests+f.lark.state.callbackRequests+f.qq.state.providerRequests+f.lark.state.providerRequests,0);
 });
@@ -155,7 +156,7 @@ test('strict schemas reject arbitrary destinations, identities, tools, replay an
     event('qq',{delivery:{mode:'webhook',url:CALLBACK,secret:'invalid'}}),event('qq',{delivery:{mode:'webhook',url:CALLBACK,secret:SECRET,headers:{}}}),event('qq',{name:'lark.message.created/../qq'})]){
     const n=before(),result=await f.post('events/subscribe',params);assert.ok([400,403].includes(result.status));assert.equal(before(),n);
   }
-  for(const [name,args]of [['get_qq_message',{message_id:'same-id',recipient:'x'}],['reply_to_qq',{message_id:'same-id',text:'x',url:CALLBACK}],['reply_to_lark',{message_id:'same-id',text:'x'.repeat(2001)}],['reply_to_lark',{message_id:'same-id',text:'   '}],['get_lark_message',{message_id:'x'.repeat(257)}],['check_lark_setup',{}],['check_lark_readiness',{callback_url:'http://bad.invalid'}],['check_bridge_setup',{callback_url:'https://callback.example.test/#fragment'}]]){
+  for(const [name,args]of [['get_qq_message',{message_id:'same-id',recipient:'x'}],['reply_to_qq',{message_id:'same-id',text:'x',url:CALLBACK}],['reply_to_lark',{message_id:'same-id',text:'x'.repeat(30001)}],['reply_to_lark',{message_id:'same-id',text:'   '}],['get_lark_message',{message_id:'x'.repeat(257)}],['check_lark_setup',{}],['check_lark_readiness',{callback_url:'http://bad.invalid'}],['check_bridge_setup',{callback_url:'https://callback.example.test/#fragment'}]]){
     const n=before(),result=await f.tool(name,args);assert.ok([400,403].includes(result.status));assert.equal(before(),n);
   }
 });
@@ -381,7 +382,8 @@ test('formal Lark pending list rejects malformed, terminal, duplicate, oversized
   pending=[{...reference,message_id:'elapsed-id',reply_deadline:new Date(Date.now()-1).toISOString()},reference];assert.deepEqual((await f.tool('check_lark_readiness')).body.result.structuredContent.pending_messages,[reference]);
   configured=false;assert.equal((await f.tool('check_lark_readiness')).status,502);configured=true;
   single=null;assert.equal((await f.tool('check_lark_readiness')).status,502);single=undefined;
-  for(const mode of [TRANSPORT,BLOCKED_TRANSPORT,{...owner,mode:'owner_single_message_proxy'}]){
+  transport=TRANSPORT;pending=[reference];assert.deepEqual((await f.tool('check_lark_readiness')).body.result.structuredContent.pending_messages,[reference]);
+  for(const mode of [BLOCKED_TRANSPORT,{...owner,mode:'owner_single_message_proxy'}]){
     transport=mode;for(const value of [[],[reference]]){pending=value;assert.equal((await f.tool('check_lark_readiness')).status,502);}
   }
 });

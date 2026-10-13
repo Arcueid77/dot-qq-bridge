@@ -14,21 +14,23 @@ function json(res, status, value, headers = {}) {
   res.end(JSON.stringify(value));
 }
 async function readBody(req) {
+  const limit=req.headers['mcp-name']==='reply_lark_media'?12*1024*1024:['reply_to_lark','append_lark_reply'].includes(req.headers['mcp-name'])?262144:32768;
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '') ||
       (req.headers['content-encoding'] && req.headers['content-encoding'] !== 'identity')) throw new BridgeError('Expected uncompressed application/json', { status: 415 });
-  if (Number(req.headers['content-length']) > 32768) throw new BridgeError('Request too large', { status: 413 });
-  let timer;
+  if (Number(req.headers['content-length']) > limit) throw new BridgeError('Request too large', { status: 413 });
+  let timer,bodySettled=false;
   const read = (async () => {
     let bytes = 0; const chunks = [];
-    for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) throw new BridgeError('Request too large', { status: 413 }); chunks.push(chunk); }
+    for await (const chunk of req) { bytes += chunk.length; if (bytes > limit) throw new BridgeError('Request too large', { status: 413 }); chunks.push(chunk); }
     try { return JSON.parse(new TextDecoder('utf8', { fatal: true }).decode(Buffer.concat(chunks))); }
     catch { throw new BridgeError('Invalid JSON or UTF-8', { code: -32700 }); }
   })();
   try {
     return await Promise.race([read, new Promise((_, reject) => { timer = setTimeout(() => {
+      if(bodySettled)return;
       reject(new BridgeError('Body timeout', { status: 408 })); req.destroy();
     }, 5000); })]);
-  } finally { clearTimeout(timer); }
+  } finally { bodySettled=true;clearTimeout(timer); }
 }
 export function checkHeaders(req, port) {
   if (!Array.isArray(req.rawHeaders) || req.rawHeaders.length % 2 || !req.headers || typeof req.headers !== 'object') throw new BridgeError('Malformed headers', { code: -32020 });

@@ -19,19 +19,24 @@ const adaptations = new Set([
   "dot-bridge-transport/test/owner-message.test.js",
   "dot-bridge-transport/transport.js",
   "dot-bridge-tunnel/README.md",
+  "dot-bridge-tunnel/package.json",
   "dot-bridge-tunnel/src/auth.js",
   "dot-bridge-tunnel/src/catalog.js",
+  "dot-bridge-tunnel/src/common.js",
+  "dot-bridge-tunnel/src/server.js",
+  "dot-bridge-tunnel/src/lark-contract.js",
   "dot-bridge-tunnel/src/live-contract.js",
   "dot-bridge-tunnel/src/upstream.js",
   "dot-bridge-tunnel/src/main.js",
   "dot-bridge-tunnel/test/aggregator.test.js",
   "dot-bridge-tunnel/test/live.test.js",
-  "dot-bridge-tunnel/test/sibling-contract.test.js"
+  "dot-bridge-tunnel/test/sibling-contract.test.js",
+  "dot-bridge-tunnel/test/lark-experience.test.js"
 ]);
 
 test('packaged sources match reviewed hashes and declare layout, Windows and transport adaptations', () => {
   assert.equal(manifest.version, 1);
-  assert.equal(manifest.files.length, 30);
+  assert.equal(manifest.files.length, 32);
   const seen = new Set();
   for (const item of manifest.files) {
     assert.ok(['dot-bridge-transport', 'dot-bridge-tunnel'].includes(item.package));
