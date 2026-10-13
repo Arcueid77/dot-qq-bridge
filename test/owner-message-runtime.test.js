@@ -7,7 +7,7 @@ import http from 'node:http';
 import { readConfig } from '../src/config.js';
 import { saveQqCredentials } from '../src/credential-store.js';
 import { startQqOwnerMessage } from '../src/owner-message-runtime.js';
-import { makeOwnerMessageExperimentTransport } from '../packages/dot-bridge-transport/experimental/owner-message.js';
+import { makeOwnerMessageExperimentTransport } from '@dot-bridge/core/transport/experimental/owner-message.js';
 import { createApp as createAggregate } from '../packages/dot-bridge-tunnel/src/server.js';
 import { readConfig as aggregateConfig } from '../packages/dot-bridge-tunnel/src/config.js';
 import { VERSION, SERVICE_HEADER, metadata } from '../packages/dot-bridge-tunnel/src/common.js';

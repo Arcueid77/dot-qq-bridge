@@ -4,7 +4,7 @@ import https from 'node:https';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { BridgeError } from './common.js';
-import { makeCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { makeCallbackTransport } from '@dot-bridge/core/transport';
 import { callbackTransportFailure, callbackTransportStatus } from './callback-transport.js';
 
 const fail = (message, reason = 'connection_refused') => new BridgeError(message, { code: -32015, data: { reason }, retryable: true });

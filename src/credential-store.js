@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { openPrivateDirectory, readPrivateFile } from './private-files.js';
-import { windowsPrivateDestination, windowsWritePrivateFile } from '../packages/dot-bridge-platform/index.js';
+import { windowsPrivateDestination, windowsWritePrivateFile } from '@dot-bridge/core/platform';
 export function prepareCredentialDestination(directory) {
   const parent = openPrivateDirectory(directory, { create: true });
   try {

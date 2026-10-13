@@ -1,4 +1,4 @@
-import { privateMkdtempSync, privateMkdirSync, fixtureChmodSync, cleanupPrivateFixture, beforeFixtureCleanup } from '../../dot-bridge-platform/test-fixtures.js';
+import { privateMkdtempSync, privateMkdirSync, fixtureChmodSync, cleanupPrivateFixture, beforeFixtureCleanup } from '@dot-bridge/core/platform/test-fixtures.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -95,7 +95,7 @@ for(const replyOutcome of ['sent','uncertain'])test(`actual owner Lark delayed r
   const {readTunnelReadinessConfig}=await import(new URL('config.js',sibling('dot-lark-bridge')));
   const {createLarkOwnerMessageSession}=await import(new URL('owner-message-session.js',sibling('dot-lark-bridge')));
   const {createOwnerMessageRuntime}=await import(new URL('owner-message-runtime.js',sibling('dot-lark-bridge')));
-  const {makeOwnerMessageExperimentTransport,ownerMessageExperimentStatus}=await import('../../dot-bridge-transport/experimental/owner-message.js');
+  const {makeOwnerMessageExperimentTransport,ownerMessageExperimentStatus}=await import('@dot-bridge/core/transport/experimental/owner-message.js');
   const env={AUTH_MODE:'tunnel-service',BRIDGE_MODE:'tunnel',TUNNEL_SERVICE_OWNER_ID:OWNER,QQ_TRANSPORT:'disabled',LARK_TRANSPORT:'disabled'};
   const qq=createQq({...readQq({...env,TUNNEL_SERVICE_KEY_FILE:files[1]}),dbPath:':memory:',storageKey:Buffer.alloc(32,114).toString('base64')},{worker:false,send:async()=>{throw Error('No QQ provider request');}});
   beforeFixtureCleanup(t,()=>qq.close());const qa=await qq.listen(0);
@@ -150,7 +150,7 @@ test('actual formal Lark Bridge supports two owner events and normal queued repl
  const {createApp:createQq}=await import(qqSource),{readConfig:readQq}=await import(new URL('config.js',sibling('dot-qq-bridge')));
  const {createApp:createLark}=await import(larkSource),{readConfig:readLark}=await import(new URL('config.js',sibling('dot-lark-bridge')));
  const {makePublicRequester}=await import(new URL('network.js',sibling('dot-lark-bridge'))),{createLarkDispatcher}=await import(new URL('lark-runtime.js',sibling('dot-lark-bridge')));
- const {makeOwnerScopedProxyTransport}=await import('../../dot-bridge-transport/owner-scoped.js');
+ const {makeOwnerScopedProxyTransport}=await import('@dot-bridge/core/transport/owner-scoped.js');
  const env={AUTH_MODE:'tunnel-service',BRIDGE_MODE:'tunnel',TUNNEL_SERVICE_OWNER_ID:OWNER};
  const qq=createQq({...readQq({...env,TUNNEL_SERVICE_KEY_FILE:files[1],QQ_TRANSPORT:'disabled'}),dbPath:':memory:',storageKey:Buffer.alloc(32,125).toString('base64')},{worker:false,send:async()=>{throw Error('No QQ provider call');}});beforeFixtureCleanup(t,()=>qq.close());const qa=await qq.listen(0);
  const config=readLark({...env,TUNNEL_SERVICE_OPERATION:'live',CALLBACK_TRANSPORT_MODE:'owner-scoped-proxy',TUNNEL_SERVICE_KEY_FILE:files[2],LARK_CREDENTIALS_FILE:paired,LARK_EXPECTED_APP_ID:credentials.appId,STORAGE_KEY_FILE:files[3],DATABASE_PATH:path.join(dir,'messages.sqlite'),BRIDGE_LOCK_DIRECTORY:dir,LARK_TRANSPORT:'long-connection',TEXT_RETENTION_SECONDS:'3600'});

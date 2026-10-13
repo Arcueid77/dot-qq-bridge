@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { windowsPrivateDirectory, windowsReadPrivateFile, windowsPrivateDatabase } from '../packages/dot-bridge-platform/index.js';
+import { windowsPrivateDirectory, windowsReadPrivateFile, windowsPrivateDatabase } from '@dot-bridge/core/platform';
 
 // Linux descriptor-relative traversal: never follow a path component symlink.
 // The final directory must belong to this process user and be exactly 0700.

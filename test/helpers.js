@@ -3,7 +3,7 @@ import { readConfig } from '../src/config.js';
 import { createApp } from '../src/server.js';
 import { qqKey, verifyWebhook } from '../src/signatures.js';
 import { EVENT_NAME } from '../src/bridge.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 
 // Deliberately public, synthetic fixture values. These are never real account credentials.
 export const FIXTURE_TOKEN = 'synthetic-local-token-for-tests-only-0000000000';

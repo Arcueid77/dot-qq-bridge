@@ -1,4 +1,4 @@
-import { cleanupPrivateFixture, beforeFixtureCleanup, privateMkdirSync, privateMkdtempSync, fixtureChmodSync, fixtureSymlinkSync, assertPrivateFixture } from '../packages/dot-bridge-platform/test-fixtures.js';
+import { cleanupPrivateFixture, beforeFixtureCleanup, privateMkdirSync, privateMkdtempSync, fixtureChmodSync, fixtureSymlinkSync, assertPrivateFixture } from '@dot-bridge/core/platform/test-fixtures.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ import { servicePreflight, serviceSnapshot, startPersistentService, startLockedP
 import { acquireModeLock } from '../src/bridge-mode.js';
 import { fixtureGateway } from './gateway-helpers.js';
 import { mcpRequest, subscriptionParams, qqPayload } from './helpers.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 import { makePublicRequester } from '../src/network.js';
 
 const serviceKey = Buffer.alloc(32, 21).toString('base64url');

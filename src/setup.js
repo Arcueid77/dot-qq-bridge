@@ -1,6 +1,6 @@
 import { callbackUrl } from './network.js';
 import { callbackTransportStatusSchema, unverifiedCallbackTransport } from './callback-transport.js';
-import { projectCallbackTransportStatus } from '../packages/dot-bridge-transport/index.js';
+import { projectCallbackTransportStatus } from '@dot-bridge/core/transport';
 
 const bindings = { qqAppId: 'QQ_APP_ID', qqSecret: 'QQ_BOT_SECRET', ownerOpenid: 'QQ_OWNER_OPENID', principal: 'MCP_OWNER_SUBJECT' };
 export function ownerConfigured(config) {

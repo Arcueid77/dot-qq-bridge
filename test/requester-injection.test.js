@@ -3,7 +3,7 @@ import { config, subscriptionParams, qqPayload } from './helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServiceSender, makePublicRequester } from '../src/network.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 
 const proxyEnv = { HTTPS_PROXY: 'http://synthetic-proxy.invalid:3128' };
 const never = () => assert.fail('No network is permitted in this test');

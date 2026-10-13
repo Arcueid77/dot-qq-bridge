@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Bridge } from '../src/bridge.js';
 import { readConfig } from '../src/config.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 import { installQqOwnerMessagePolicy, pendingQqMessageSchema } from '../src/owner-message-policy.js';
 
 function fixture(failed = false, earlyReply = false) {

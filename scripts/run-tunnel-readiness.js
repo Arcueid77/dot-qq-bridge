@@ -2,7 +2,7 @@
 import { randomBytes } from 'node:crypto';
 import { readConfig } from '../src/config.js';
 import { createApp } from '../src/server.js';
-import { supervisedStop } from '../packages/dot-bridge-platform/supervised-stop.js';
+import { supervisedStop } from '@dot-bridge/core/platform/supervised-stop.js';
 let app, stopSupervision = () => {};
 try {
   if (process.env.DATABASE_PATH || process.env.STORAGE_KEY || process.env.STORAGE_KEY_FILE || process.env.QQ_CREDENTIALS_FILE ||

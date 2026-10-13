@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { openPrivateDirectory, assertPrivateFile } from './private-files.js';
-import { windowsModeLock } from '../packages/dot-bridge-platform/index.js';
+import { windowsModeLock } from '@dot-bridge/core/platform';
 export function bridgeMode(env) {
   if (!['tunnel', 'sites'].includes(env.BRIDGE_MODE)) throw new Error('Select exactly one BRIDGE_MODE: tunnel or sites');
   return env.BRIDGE_MODE;

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import {pathToFileURL} from 'node:url';
-import {privateMkdtempSync,privateMkdirSync,cleanupPrivateFixture,beforeFixtureCleanup} from '../../dot-bridge-platform/test-fixtures.js';
+import {privateMkdtempSync,privateMkdirSync,cleanupPrivateFixture,beforeFixtureCleanup} from '@dot-bridge/core/platform/test-fixtures.js';
 import {createApp} from '../src/server.js';
 import {OWNER,SERVICE_HEADER,VERSION,metadata} from '../src/common.js';
 const larkRoot=process.env.LARK_BRIDGE_SOURCE_ROOT?pathToFileURL(path.resolve(process.env.LARK_BRIDGE_SOURCE_ROOT)+path.sep):new URL('../../../../dot-lark-bridge/src/',import.meta.url);

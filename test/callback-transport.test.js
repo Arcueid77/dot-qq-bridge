@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 import { createApp } from '../src/server.js';
 import { makePublicRequester } from '../src/network.js';
 import { config, mcpHeaders, mcpRequest, qqPayload, subscriptionParams } from './helpers.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 import { verifyWebhook } from '../src/signatures.js';
 
 async function appFixture(t, send) {

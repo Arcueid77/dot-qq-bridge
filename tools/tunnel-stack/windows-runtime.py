@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-spec = importlib.util.spec_from_file_location('dot_native_windows', Path(__file__).resolve().parents[2] / 'packages/dot-bridge-platform/windows.py')
+spec = importlib.util.spec_from_file_location('dot_native_windows', Path(__file__).resolve().parents[2] / 'node_modules/@dot-bridge/core/packages/dot-bridge-platform/windows.py')
 win = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(win)
 api, kernel, HANDLE, DWORD = win.api, win.kernel, win.HANDLE, win.DWORD

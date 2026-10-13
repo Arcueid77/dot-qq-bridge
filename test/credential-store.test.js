@@ -1,4 +1,4 @@
-import { privateMkdtempSync, privateMkdirSync, fixtureSymlinkSync, assertPrivateFixture } from '../packages/dot-bridge-platform/test-fixtures.js';
+import { privateMkdtempSync, privateMkdirSync, fixtureSymlinkSync, assertPrivateFixture } from '@dot-bridge/core/platform/test-fixtures.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

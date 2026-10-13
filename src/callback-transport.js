@@ -1,4 +1,4 @@
-import { callbackTransportStatusSchema, projectCallbackTransportStatus, TRANSPORT_ERROR_CODES } from '../packages/dot-bridge-transport/index.js';
+import { callbackTransportStatusSchema, projectCallbackTransportStatus, TRANSPORT_ERROR_CODES } from '@dot-bridge/core/transport';
 import { BridgeError } from './common.js';
 
 export { callbackTransportStatusSchema };

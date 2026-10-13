@@ -5,7 +5,7 @@ import { startLockedPersistentService } from './service-runtime.js';
 import { installQqOwnerMessagePolicy } from './owner-message-policy.js';
 import { webhookKey } from './signatures.js';
 import { equal, object } from './common.js';
-import { makeOwnerMessageExperimentTransport } from '../packages/dot-bridge-transport/experimental/owner-message.js';
+import { makeOwnerMessageExperimentTransport } from '@dot-bridge/core/transport/experimental/owner-message.js';
 
 // Explicit opt-in only. No credential provisioning, environment module selector,
 // self-imposed owner-wait deadline, or change to the ordinary service entrypoint.

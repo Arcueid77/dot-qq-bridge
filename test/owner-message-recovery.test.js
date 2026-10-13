@@ -6,7 +6,7 @@ import path from 'node:path';
 import { Bridge } from '../src/bridge.js';
 import { readConfig } from '../src/config.js';
 import { installQqOwnerMessagePolicy } from '../src/owner-message-policy.js';
-import { preflightCallbackTransport } from '../packages/dot-bridge-transport/index.js';
+import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 
 const KEY = 'qq_owner_single_message:v1', CONTEXT = 'qq-owner-single-message:v1';
 function fixture(t) {

@@ -35,9 +35,9 @@ Windows 如果 PowerShell 限制 `npm.ps1`，使用 `npm.cmd`。依赖下载只�
 
 ## 两个仓库的可移植部署
 
-将本仓库与 `dot-lark-bridge` 克隆到同一个父目录。本仓库包含 `packages/dot-bridge-transport` 共享回调传输、`packages/dot-bridge-tunnel` 固定路由聚合器，以及 [可移植启动器](tools/tunnel-stack/README.md)。飞书从同级本仓库导入共享传输，不再依赖未受 Git 管理的第三个目录。部署布局、离线检查及交接边界见 [源码交接说明](docs/source-handoff.md)。
+公共回调传输、私有文件保护和通用聚合器已抽到 `dot-bridge-core`，本仓库安装固定版本 `@dot-bridge/core`，发行包在 `vendor/`。飞书可单独部署，不再引用本仓库。原 `packages/dot-bridge-tunnel` 仅保留注册实际适配器的薄兼容入口和测试，旧双渠道开发启动器需要两个适配器源码；正式单 QQ 聚合器使用 `scripts/run-tunnel-router.js`。
 
-私人 Tunnel 模式在 Linux 使用文件所有者、权限、`O_NOFOLLOW`、`/proc/self/fd` 与进程锁保护；Windows 原生分支使用本地 NTFS、所有者/SYSTEM 私有 DACL 和固定句柄，见[安全平台层](packages/dot-bridge-platform/README.md)。Windows 离线结果不代表 Linux 或真实消息验收。每个操作者使用自己的 Tunnel、服务凭据、主人配对及插件，不复制其他部署的密钥或身份。
+私人 Tunnel 模式在 Linux 使用文件所有者、权限、`O_NOFOLLOW`、`/proc/self/fd` 与进程锁保护；Windows 原生分支使用本地 NTFS、所有者/SYSTEM 私有 DACL 和固定句柄，见[安全平台层](docs/core.md)。Windows 离线结果不代表 Linux 或真实消息验收。每个操作者使用自己的 Tunnel、服务凭据、主人配对及插件，不复制其他部署的密钥或身份。
 
 ## 能力与约束
 
@@ -101,7 +101,7 @@ QQ 官方沙箱选择 `QQ_API_PROFILE=tencent-sandbox`，同时使用独立 `DAT
 新增[已有机器人只读诊断](docs/cloud-trial.md)：无秘密plan及用户本人控制的无回显、仅内存输入入口。需单独授权后才执行最多两个官方请求；不会接收或回复消息，也不代表当前dot已连接。
 
 Native Windows private storage and finite-window supervision:
-[platform boundary and tests](packages/dot-bridge-platform/README.md),
+[platform boundary and tests](docs/core.md),
 [portable stack configuration](tools/tunnel-stack/README.md). This does not
 authorize reuse of saved keys or attest real current-dot delivery.
 

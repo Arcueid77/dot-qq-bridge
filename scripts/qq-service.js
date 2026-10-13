@@ -1,7 +1,7 @@
 import { createServiceSender } from '../src/network.js';
 import { readConfig } from '../src/config.js';
 import { servicePreflight, startLockedPersistentService } from '../src/service-runtime.js';
-import { supervisedStop } from '../packages/dot-bridge-platform/supervised-stop.js';
+import { supervisedStop } from '@dot-bridge/core/platform/supervised-stop.js';
 const args = process.argv.slice(2);
 const write = value => process.stdout.write(JSON.stringify(value) + '\n');
 let stopSupervision = () => {};

@@ -21,6 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "@tencent-connect/qqbot-connector": "1.2.0",
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "@dot-bridge/core": "file:vendor/dot-bridge-core-0.2.0.tgz"
   }
 }
