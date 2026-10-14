@@ -99,8 +99,9 @@ loopback peer and strict raw service-key/header checks remain active; arbitrary
 caller identity headers are rejected. The aggregator continues reconstructing
 the required MCP headers; backend header/body matching was not weakened.
 
-Live mode exposes exactly `get_qq_message(message_id)`,
-`reply_to_qq(message_id,text)` and `check_bridge_setup(callback_url?)`. The only
+Live mode exposes `get_qq_message(message_id)`, `get_qq_context(message_id,limit?)`,
+`begin_qq_reply(message_id)`, `append_qq_reply(message_id,sequence,text)`,
+`reply_to_qq(message_id,text,format?)` and `check_bridge_setup(callback_url?)`. The only
 event is `qq.message.created`, with arguments `{ "conversation": "owner" }`.
 No tool accepts a recipient, provider routing address or arbitrary channel.
 The event's data is `{message_id,conversation,text,reply_deadline}`.
@@ -147,8 +148,11 @@ message read and queued reply, and stops the Gateway. Subscription generation an
 epoch checks prevent unsubscribe-during-verification from reactivating a lease,
 and prevent same-ID resubscription from authorizing earlier messages or jobs.
 Replies remain bound to the original verified owner, message ID and passive
-reply deadline, with durable deduplication and no automatic resend of an
-uncertain provider acknowledgement.
+reply deadline. Input notifications and native streams use durable sequences;
+crashed stream frames become uncertain and cannot be replaced by another
+answer. See the experience contract for the processing claim, context limits,
+Markdown permission dependency and genuine streaming rules. No uncertain
+provider acknowledgement is automatically resent.
 
 ## Storage, locks and cleanup
 

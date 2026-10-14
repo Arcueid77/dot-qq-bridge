@@ -45,7 +45,8 @@ Windows 如果 PowerShell 限制 `npm.ps1`，使用 `npm.cmd`。依赖下载只�
 - QQ 回调按原始字节进行 Ed25519 验签，检查时间、防重放；验签成功且入站记录提交到 SQLite 后才 ACK。
 - 可选择 `QQ_TRANSPORT=gateway`：从固定官方 API 获取 WSS 地址，校验 TLS/公网 DNS 并固定实际连接 IP；只在完整主人配置及有效 dot 订阅后连接。入站和恢复序号在同一事务提交，持久租约防止同库双接入；不开放 Webhook。
 - 一个有效 dot 订阅，签名验证回调地址后持久保存；固定事件 `qq.message.created`，过滤参数仅为 `{"conversation":"owner"}`。
-- `get_qq_message` 读取本订阅已投递尝试的消息与状态；`reply_to_qq` 只接受已验证 `message_id` 和纯文本。收件人从数据库确定，不能传 QQ 号或任意目标。
+- `get_qq_message` 读取本订阅已投递尝试的消息与状态；`reply_to_qq` 只按已验证 `message_id` 回到原本人私聊。收件人由服务器确定，不能传 QQ 号或任意目标。
+- 私聊体验支持一次原生输入提示、同一消息的真实原生流式更新、Markdown 和最多 30000 字符的完整回答，以及七天保留期内的有界连续上下文。`begin_qq_reply` 在实际开始处理时建立持久处理标记；重复事件不能开始第二份回答。`append_qq_reply` 使用连续序号和真正生成的完整文本，最终由 `reply_to_qq` 完成同一消息。详见 [体验与发送边界](docs/chat-experience.md)。
 - `check_bridge_setup` 是受同一 MCP 鉴权保护的只读配置诊断。可报告缺失设置和回调主机名，不输出 URL 路径/查询/secret，不发请求或自动批准主机；身份完整但白名单为空时仍展示事件，订阅会给出可操作的拒绝提示。
 - 一条入站最多一份回答，重复相同回答幂等；固定原 `msg_id` 和 `msg_seq: 1`，不降级为主动消息。
 - 默认 240 秒回复期限、每分钟 10 条入站/回复、队列 100 项、有界重试。QQ 发送结果不确定时停止自动重发。
