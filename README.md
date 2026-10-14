@@ -2,7 +2,7 @@
 
 QQ 官方机器人本人单聊文字 → 自建 MCP Events → **订阅所在的现有 OpenAI dot** → `reply_to_qq` → 同一 QQ 会话。
 
-提供可运行的 Webhook 和可审查的官方 WebSocket Gateway 入站，复用同一主人白名单、持久队列和受限回复工具。HTTP 与真实本机 WebSocket 模拟闭环均通过。已有独立部署验证了当前 dot 经 Secure MCP Tunnel 调用 QQ/飞书只读工具，以及事件目录发现；**真实 Events 订阅、唤醒和 QQ/飞书消息往返仍未验收。** 模拟器的回答是固定测试数据。项目不调用模型 API，不读取 Cookie，不迁移或导出 dot 私有记忆。
+提供可运行的 Webhook 和可审查的官方 WebSocket Gateway 入站，复用同一主人白名单、持久队列和受限回复工具。HTTP 与真实本机 WebSocket 模拟闭环均通过。2026-10-14 的授权 VPS 部署已验证原 dot 的真实 Events 订阅、QQ 本人私聊回复、原生流式帧和真实状态的服务重启；客户端与其他验收项见 [真实运行验收](docs/runtime-acceptance.md)。模拟器的回答仍是固定测试数据，不能代替真实收发证据。项目不调用模型 API，不读取 Cookie，不迁移或导出 dot 私有记忆。
 
 ## 立即运行离线验证
 
