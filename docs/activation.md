@@ -1,6 +1,14 @@
 # 真实接入前的最小清单
 
-以下动作都**尚未执行**。当前授权只覆盖代码、本地验证和本地提交；QQ 凭据准备、真实身份绑定、长期权限、端点公开、托管费用、推送及部署均需主人另行确认。不要把凭据粘贴到聊天、Git 或 `.env.example`。
+本页保留早期 OAuth/Webhook 路线的检查模板及当时的授权记录，不能用它
+判定当前 Secure MCP Tunnel 部署状态。正式 Tunnel 入口见
+[tunnel-live.md](tunnel-live.md)、官方扫码见 [official-qr.md](official-qr.md)，
+2026-10-14 至 15 的已授权运行结果见 [runtime-acceptance.md](runtime-acceptance.md)。
+新部署仍需独立获得所需授权；同一会话中已经明确批准的范围不必重复确认。
+
+以下“尚未执行”描述属于最初的离线阶段。QQ 凭据准备、真实身份绑定、
+长期权限、端点公开和托管必须按实际部署范围确认。不要把凭据粘贴到聊天、
+Git 或 `.env.example`。
 
 ## 先确认三个可行性条件
 
