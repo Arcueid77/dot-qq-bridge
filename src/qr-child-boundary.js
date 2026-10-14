@@ -5,7 +5,8 @@ export function qrChildEnvironment(env) {
   const allowed = new Set(['PATH', 'HOME', 'TMPDIR', 'LANG', 'HTTPS_PROXY', 'https_proxy', 'NO_PROXY', 'no_proxy', 'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR']);
   return Object.fromEntries(Object.entries(env).filter(([key]) => allowed.has(key)));
 }
-export function superviseQrChild(child, { output, failed = () => {}, signal, timeoutMs = QR_PARENT_MAX_MS, allowCredentialsWritten = false } = {}) {
+export function superviseQrChild(child, { output, failed = () => {}, signal, timeoutMs = QR_PARENT_MAX_MS,
+  allowCredentialsWritten = false, allowSelectionConfirmation = false, selectionPending = () => {} } = {}) {
   let terminal = false;
   const finish = () => { terminal = true; clearTimeout(timer); signal?.removeEventListener('abort', failure); child.kill(); };
   const failure = () => { if (terminal) return; output({ status: 'scanner_process_failed' }); failed(); finish(); };
@@ -18,6 +19,12 @@ export function superviseQrChild(child, { output, failed = () => {}, signal, tim
       if (safe) output(safe); else failure();
     } else if (event?.type === 'qr') {
       try { output({ type: 'qr', url: officialQrUrl(event.url) }); } catch { failure(); }
+    } else if (event?.type === 'selection') {
+      if (allowSelectionConfirmation !== true || event.owner_identity_verified !== true ||
+          event.state !== 'awaiting_existing_app_confirmation') { failure(); return; }
+      output({ type: 'selection', state: 'awaiting_existing_app_confirmation', owner_identity_verified: true,
+        credentials_written: false, runtime_started: false });
+      selectionPending();
     } else if (event?.type === 'result') {
       const safe = { status: event.status === 'official_scan_validated' ? 'official_scan_validated' : 'scan_failed_or_scope_rejected',
         credentials_written: allowCredentialsWritten === true && event.credentials_written === true, current_dot_connected: false, owner_identity_verified: event.owner_identity_verified === true };

@@ -191,7 +191,7 @@ export class Store {
     }
     return message;
   }
-  queueReply(id, text, principal, now) {
+  queueReply(id, text, principal, now, configure = () => {}) {
     return this.tx(() => {
       const message = this.authorizeMessage(id, principal, now);
       const previous = this.get('SELECT digest FROM replies WHERE message_id=?', id);
@@ -203,6 +203,7 @@ export class Store {
       this.capacity();
       this.run('INSERT INTO replies VALUES (?,?,?,?)', id, hash(text), this.vault.seal(text, `reply:${id}`), now);
       this.run('INSERT INTO jobs(id,kind,message_id,subscription_id,next_at) VALUES (?,?,?,?,?)', `reply:${id}`, 'reply', id, message.subscription_id, now);
+      if (configure(message) !== undefined) throw new BridgeError('Reply configuration must complete synchronously');
       return this.replyStatus(id);
     });
   }
@@ -213,9 +214,9 @@ export class Store {
   claim(now) {
     return this.tx(() => {
       // A crashed event delivery can be retried by eventId. A crashed QQ send is ambiguous.
-      this.run("UPDATE jobs SET state='uncertain',last_error='worker_interrupted' WHERE kind='reply' AND state='processing' AND lease_until<=?", now);
+      this.run("UPDATE jobs SET state='uncertain',last_error='worker_interrupted' WHERE kind<>'event' AND state='processing' AND lease_until<=?", now);
       this.run("UPDATE jobs SET state='pending',lease_token=NULL WHERE kind='event' AND state='processing' AND lease_until<=?", now);
-      const job = this.get("SELECT * FROM jobs WHERE state='pending' AND next_at<=? ORDER BY next_at,id LIMIT 1", now);
+      const job = this.get("SELECT * FROM jobs WHERE state='pending' AND next_at<=? ORDER BY next_at,CASE WHEN kind='typing' THEN 0 ELSE 1 END,id LIMIT 1", now);
       if (!job) return undefined;
       const token = randomUUID();
       this.run("UPDATE jobs SET state='processing',attempts=attempts+1,lease_until=?,lease_token=? WHERE id=?", now + this.config.leaseMs, token, job.id);

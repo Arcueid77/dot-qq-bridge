@@ -16,13 +16,14 @@ function json(res, status, value, headers = {}) {
 async function readBody(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) throw new BridgeError('Expected application/json', { status: 415 });
   if (req.headers['content-encoding'] && req.headers['content-encoding'] !== 'identity') throw new BridgeError('Compressed bodies are unsupported', { status: 415 });
-  if (Number(req.headers['content-length']) > 32768) throw new BridgeError('Request too large', { status: 413 });
+  const limit = req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
+  if (Number(req.headers['content-length']) > limit) throw new BridgeError('Request too large', { status: 413 });
   let timer;
   const read = (async () => {
     let bytes = 0; const chunks = [];
     for await (const chunk of req) {
       bytes += chunk.length;
-      if (bytes > 32768) throw new BridgeError('Request too large', { status: 413 });
+      if (bytes > limit) throw new BridgeError('Request too large', { status: 413 });
       chunks.push(chunk);
     }
     return Buffer.concat(chunks);
@@ -142,7 +143,7 @@ export function createApp(config, { clock = Date.now, send, worker = true, appro
   function runWorker() {
     if (stopping || bridge.running) return;
     lastTick = bridge.tick().then(() => {
-      if (clock() - lastPrune > 3600000) { bridge.store.prune(clock()); lastPrune = clock(); }
+      if (clock() - lastPrune > 3600000) { bridge.store.prune(clock()); bridge.experience.prune(clock()); lastPrune = clock(); }
     }).catch(() => { process.stderr.write('Worker failure; inspect durable queue using the operator runbook.\n'); });
   }
   return { server, bridge,

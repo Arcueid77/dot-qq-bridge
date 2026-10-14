@@ -45,7 +45,7 @@ test('reply cannot choose a recipient, forge a message, send before event delive
   assert.equal(arbitrary.status, 400);
   assert.equal((await f.reply('forged-message')).body.error.code, -32012);
   assert.equal((await f.reply('fixture-message-1', ' ')).status, 400);
-  assert.equal((await f.reply('fixture-message-1', 'x'.repeat(2001))).status, 400);
+  assert.equal((await f.reply('fixture-message-1', 'x'.repeat(30001))).status, 400);
   assert.equal((await f.reply()).status, 200);
   assert.equal((await f.reply('fixture-message-1', 'different')).status, 400);
   assert.equal(f.sends.length, 0);

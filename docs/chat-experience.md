@@ -1,0 +1,44 @@
+# QQ private chat experience
+
+The original dot still produces the answer. No model API, OpenClaw runtime or
+second bot is introduced. Shared network, filesystem and router implementations
+come exclusively from the fixed core release. QQ-specific operations stay here.
+
+When actual processing starts, call `begin_qq_reply(message_id)` once. This queues
+QQ's native `msg_type=6` input notification for 60 seconds. It consumes one
+passive send sequence and does not renew the incoming message's deadline. There
+is no repeated typing keepalive. Notification failure must not be confused with
+answer delivery. The backend persists both sequences independently.
+
+Use `get_qq_context(message_id,limit?)` for follow-ups. It returns at most 20
+messages, 30000 characters in total, only from the same owner and subscription
+generation and within seven-day retention. Only positively acknowledged answers
+are included. An expired passive reply window never permits a new send, even
+though retained context remains readable through a valid subscription.
+
+For native C2C streaming call `append_qq_reply(message_id,sequence,text)` with the
+complete genuinely generated text so far. Sequences start at one and are
+consecutive; every new snapshot extends the previous text. Identical sequence
+retries are idempotent. The backend uses one stable `msg_seq`, consecutive QQ
+`index` values, replace-mode, and a minimum 500 ms between acknowledged frames.
+It persists the returned stream ID before subsequent frames. Use `reply_to_qq`
+with the complete final text to send DONE in the same stream. Do not replay a
+finished answer in pieces to create a fake streaming effect.
+
+`reply_to_qq` accepts `format:plain|markdown` (default plain). Short non-streamed
+answers use QQ's ordinary passive endpoint; Markdown uses the official Markdown
+body. Answers above 2000 characters (maximum 30000) use one native DONE message.
+This requires the selected application's existing platform capability. The
+bridge never silently expands permissions or splits an unknown send into more
+messages. Explicit provider rejection is a failure, not delivery. Connection
+loss, malformed acknowledgement or interrupted leased send becomes uncertain;
+neither the frame nor a replacement answer is automatically resent.
+
+Native input status/streaming and Markdown are based on Tencent's official
+[Node.js SDK](https://github.com/tencent-connect/qqbot-nodejs/blob/main/USAGE.md),
+whose public protocol was inspected. The bridge keeps its own guarded requester
+and durable worker; it does not import SDK retry policies or raw-message logging.
+Offline tests do not prove this application's live permissions or visible UX.
+
+Initial deployment remains owner C2C only. QQ group, guild and other-user messages
+are ignored. There is no unapproved group subscription or all-member access.

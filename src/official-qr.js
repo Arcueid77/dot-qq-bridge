@@ -1,7 +1,10 @@
 import { QR_LOCAL_WAIT_MS, QR_PARENT_MAX_MS, QR_REQUEST_BUDGET, QR_REQUEST_TIMEOUT_MS } from './qr-limits.js';
 import https from 'node:https';
 import { BridgeError } from './common.js';
-import { createProviderProxyAgent } from './provider-network.js';
+import { configuredProviderProxy, createProviderProxyAgent } from './provider-network.js';
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
+import { publicAddress } from './network.js';
 import { inspectQrCredentials } from './connection-wizard.js';
 import { qrFailure } from './qr-failures.js';
 
@@ -18,9 +21,38 @@ export function officialQrUrl(raw) {
 
 // Use ONLY inside the isolated scanner child. Never change the bridge's agent,
 // callback DNS pinning, or OAuth transport. The SDK's public API has no agent option.
-export function installQrTransport({ env = process.env, target = https, factory = createProviderProxyAgent, diagnostic = () => {}, signal } = {}) {
-  const agent = factory({ env, allowedHost: host => host === 'q.qq.com' });
-  if (!agent) throw new BridgeError('The official scanner requires the configured cloud proxy');
+export function createQrDirectAgent({ lookup = dnsLookup } = {}) {
+  class DirectQrAgent extends https.Agent {
+    addRequest(req, options) {
+      const host = options.hostname ?? options.host;
+      if (host !== 'q.qq.com' || (options.port && Number(options.port) !== 443) || options.socketPath ||
+          options.rejectUnauthorized === false || (options.servername && options.servername !== host)) {
+        throw new BridgeError('Official QR destination rejected');
+      }
+      return super.addRequest(req, { ...options, servername: host, rejectUnauthorized: true });
+    }
+  }
+  return new DirectQrAgent({ keepAlive: false, rejectUnauthorized: true,
+    lookup(host, options, callback) {
+      if (host !== 'q.qq.com') { callback(new Error('Official QR hostname rejected')); return; }
+      Promise.resolve().then(() => lookup(host, { all: true, verbatim: true })).then(answers => {
+        if (!Array.isArray(answers) || !answers.length || answers.length > 32 ||
+            answers.some(a => !publicAddress(a.address) || isIP(a.address) !== a.family)) {
+          throw new Error('Official QR DNS rejected');
+        }
+        options.all ? callback(null, answers) : callback(null, answers[0].address, answers[0].family);
+      }).catch(() => callback(new Error('Official QR DNS rejected')));
+    },
+  });
+}
+
+export function installQrTransport({ env = process.env, target = https, factory = createProviderProxyAgent,
+  allowDirect = false, directFactory = createQrDirectAgent, diagnostic = () => {}, signal } = {}) {
+  let agent = factory({ env, allowedHost: host => host === 'q.qq.com' });
+  if (!agent) {
+    if (allowDirect !== true || configuredProviderProxy(env)) throw new BridgeError('The official scanner requires the configured cloud proxy');
+    agent = directFactory();
+  }
   const add = agent.addRequest.bind(agent); let requests = 0; const pendingCleanups = new Set();
   agent.addRequest = (req, options) => {
     if (++requests > QR_REQUEST_BUDGET || options.method !== 'POST' || !['/lite/create_bind_task', '/lite/poll_bind_result'].includes(options.path)) {
@@ -58,9 +90,21 @@ export function installQrTransport({ env = process.env, target = https, factory 
   return () => { target.globalAgent = previous; for (const cleanup of pendingCleanups) cleanup(); agent.destroy(); };
 }
 
-export function scanOfficialBot(startQrConnect, { approved = false, expectedAppId, scannerIsOwner = false,
+export function scanOfficialBot(startQrConnect, options = {}) {
+  return scanOfficialCandidate(startQrConnect, { ...options, discoverApplication: false });
+}
+
+// Returns an in-memory candidate only. This route never verifies a prior AppID
+// and never saves credentials; its caller must obtain post-scan confirmation.
+export function scanOfficialBotForEnrollment(startQrConnect, options = {}) {
+  if (options.confirmExistingAppAfterScan !== true) return Promise.reject(qrFailure('Post-scan application confirmation required', 'invalid_configuration'));
+  return scanOfficialCandidate(startQrConnect, { ...options, expectedAppId: undefined, discoverApplication: true });
+}
+
+function scanOfficialCandidate(startQrConnect, { approved = false, expectedAppId, scannerIsOwner = false,
+  discoverApplication = false,
   displayQr, signal, timeoutMs = QR_LOCAL_WAIT_MS } = {}) {
-  if (approved !== true || scannerIsOwner !== true || !/^[a-zA-Z0-9_-]{1,128}$/.test(expectedAppId ?? '') ||
+  if (approved !== true || scannerIsOwner !== true || (!discoverApplication && !/^[a-zA-Z0-9_-]{1,128}$/.test(expectedAppId ?? '')) ||
       typeof displayQr !== 'function' || typeof startQrConnect !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > QR_LOCAL_WAIT_MS) {
     return Promise.reject(qrFailure('Explicit scan consent, existing bot AppID and scanner-owner confirmation are required', 'invalid_configuration'));
@@ -90,12 +134,12 @@ export function scanOfficialBot(startQrConnect, { approved = false, expectedAppI
             try {
               const rejectScope = reason => finish('Returned bot or scanner-owner identity did not match the approved scope', null, reason);
               if (!Array.isArray(credentials) || credentials.length !== 1) { rejectScope('result_count_rejected'); return; }
-              if (!credentials[0] || typeof credentials[0].appId !== 'string') { rejectScope('credential_result_invalid'); return; }
-              if (credentials[0].appId !== expectedAppId) { rejectScope('expected_app_mismatch'); return; }
+              if (!credentials[0] || typeof credentials[0].appId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(credentials[0].appId)) { rejectScope('credential_result_invalid'); return; }
+              if (!discoverApplication && credentials[0].appId !== expectedAppId) { rejectScope('expected_app_mismatch'); return; }
               const owner = credentials[0].userOpenid;
               if (owner === undefined || owner === null || owner === '') { rejectScope('owner_identity_missing'); return; }
               if (typeof owner !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(owner)) { rejectScope('owner_identity_invalid'); return; }
-              const candidate = inspectQrCredentials(credentials, { appId: expectedAppId,
+              const candidate = inspectQrCredentials(credentials, { appId: expectedAppId ?? credentials[0].appId,
                 confirmedOwnerOpenid: credentials[0].userOpenid, ownerEvidence: 'official-qr-response' });
               finish(null, candidate);
             } catch { finish('Returned bot or scanner-owner identity did not match the approved scope', null, 'credential_result_invalid'); }

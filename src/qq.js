@@ -65,16 +65,17 @@ export function createQqClient(config, send, clock = Date.now) {
     return { accessToken, url: data.url, remaining: limit.remaining, resetAfter: limit.reset_after };
   }
   function clearToken() { token = undefined; expires = 0; }
-  async function sendReply(message, text, { authorize = () => {} } = {}) {
+  async function sendBody(message, body, { authorize = () => {}, stream = false, streamId, typing = false } = {}) {
+    authorize();
     const accessToken = await getToken();
     // Recheck the passive deadline after token refresh, immediately before the send.
     if (message.expires <= clock()) throw new BridgeError('QQ passive reply window expired');
     authorize();
     let response;
     try {
-      response = await send(`${apiOrigin}/v2/users/${encodeURIComponent(message.owner)}/messages`, {
+      response = await send(`${apiOrigin}/v2/users/${encodeURIComponent(message.owner)}/${stream ? 'stream_messages' : 'messages'}`, {
         purpose: 'provider', hosts: [new URL(apiOrigin).hostname], headers: { 'Authorization': `QQBot ${accessToken}`, 'Content-Type': 'application/json', 'X-Bot-Appid': config.qqAppId },
-        body: Buffer.from(JSON.stringify({ msg_type: 0, content: text, msg_id: message.id, msg_seq: 1 })), beforeConnect: authorize
+        body: Buffer.from(JSON.stringify(body)), beforeConnect: authorize
       });
     } catch (error) {
       if (error instanceof BridgeError && error.code === -32012) throw error;
@@ -88,10 +89,30 @@ export function createQqClient(config, send, clock = Date.now) {
     if (response.status < 200 || response.status >= 300 || (data.err_code !== undefined && data.err_code !== 0) || (data.code !== undefined && data.code !== 0)) {
       throw new BridgeError('QQ send rejected');
     }
-    if (typeof data.id !== 'string' || !data.id) throw new BridgeError('QQ send acknowledgement unknown', { uncertain: true });
+    if (typing) return true;
+    if (typeof data.id !== 'string' || !data.id || data.id.length > 256 || (streamId && data.id !== streamId)) {
+      throw new BridgeError('QQ send acknowledgement unknown', { uncertain: true });
+    }
     return data.id;
   }
-  return { sendReply, gatewayInfo, clearToken };
+  async function sendReply(message, text, { msgSeq = 1, format = 'plain', authorize = () => {} } = {}) {
+    plainText(text);
+    if (!Number.isInteger(msgSeq) || msgSeq < 1 || msgSeq > 5 || !['plain', 'markdown'].includes(format)) throw new BridgeError('Invalid QQ reply options');
+    return sendBody(message, { ...(format === 'markdown' ? { msg_type: 2, markdown: { content: text } } : { msg_type: 0, content: text }),
+      msg_id: message.id, msg_seq: msgSeq }, { authorize });
+  }
+  async function sendTyping(message, { msgSeq, authorize = () => {} } = {}) {
+    if (!Number.isInteger(msgSeq) || msgSeq < 1 || msgSeq > 5) throw new BridgeError('Invalid QQ input sequence');
+    return sendBody(message, { msg_type: 6, input_notify: { input_type: 1, input_second: 60 }, msg_id: message.id, msg_seq: msgSeq }, { authorize, typing: true });
+  }
+  async function sendStream(message, text, { msgSeq, index, streamId, done = false, authorize = () => {} } = {}) {
+    plainText(text, 30000);
+    if (!Number.isInteger(msgSeq) || msgSeq < 1 || msgSeq > 5 || !Number.isInteger(index) || index < 0 || index > 50 ||
+        (streamId !== undefined && streamId !== null && (typeof streamId !== 'string' || !streamId || streamId.length > 256))) throw new BridgeError('Invalid QQ stream options');
+    return sendBody(message, { input_mode: 'replace', input_state: done ? 10 : 1, content_type: 'markdown', content_raw: text,
+      event_id: message.id, msg_id: message.id, msg_seq: msgSeq, index, ...(streamId ? { stream_msg_id: streamId } : {}) }, { authorize, stream: true, streamId });
+  }
+  return { sendReply, sendTyping, sendStream, gatewayInfo, clearToken };
 }
 export function createQqSender(config, send, clock = Date.now) {
   return createQqClient(config, send, clock).sendReply;

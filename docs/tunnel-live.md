@@ -23,6 +23,16 @@ access/storage, persistent execution, subscriptions or communication.
 
 ## File-only live configuration
 
+For the new private-chat UX contract see [chat experience](chat-experience.md).
+When the existing AppID is unknown, the separately gated
+`scripts/qq-enroll-persistent.js` path can discover an in-memory candidate. It
+requires the scan, scanner-owner, save-credentials and post-scan-existing-app
+confirmation flags. Credentials are saved only after the operator confirms the
+selected existing application; the pinned-AppID scan remains unchanged. On a
+direct-capable VPS, this isolated child explicitly permits reviewed direct QQ
+traffic with public DNS pinning and original-domain TLS verification. A
+configured proxy is never bypassed. QR expiry requires a new explicit attempt.
+
 Required non-secret configuration:
 
 - `AUTH_MODE=tunnel-service`
