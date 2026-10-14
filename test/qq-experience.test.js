@@ -11,6 +11,7 @@ async function drain(f, count = 12) { for (let i = 0; i < count; i++) { await f.
 test('native input indication is once, consumes its own durable sequence, and final reply is next', async t => {
   const f = await harness(); t.after(f.close); await received(f);
   assert.equal((await tool(f, 'begin_qq_reply')).body.result.structuredContent.status, 'pending');
+  assert.equal((await tool(f, 'get_qq_message')).body.result.structuredContent.reply.status, 'processing');
   await tool(f, 'begin_qq_reply'); await f.app.bridge.tick(); await tool(f, 'begin_qq_reply');
   assert.equal(f.sends.length, 1);
   assert.deepEqual(f.sends[0].body, { msg_type: 6, input_notify: { input_type: 1, input_second: 60 }, msg_id: id, msg_seq: 1 });

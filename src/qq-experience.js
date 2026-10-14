@@ -34,7 +34,12 @@ export class QqExperience {
     const final = this.store.replyStatus(id);
     if (final.status !== 'none') return final;
     const failed = this.store.get("SELECT state,last_error FROM jobs WHERE message_id=? AND kind='stream' AND state IN ('uncertain','dead','cancelled','expired') ORDER BY id LIMIT 1", id);
-    return failed ? { message_id: id, status: failed.state, error: failed.last_error } : final;
+    if (failed) return { message_id: id, status: failed.state, error: failed.last_error };
+    if (this.store.get('SELECT message_id FROM qq_typing WHERE message_id=?', id) || this.store.get('SELECT message_id FROM qq_streams WHERE message_id=?', id)) {
+      const message = this.store.message(id);
+      return { message_id: id, status: message?.expires <= this.bridge.clock() ? 'expired' : 'processing', error: null };
+    }
+    return final;
   }
   begin(id, principal, now) {
     return this.store.tx(() => {
