@@ -49,7 +49,7 @@ test('synthetic compatibility with actual sibling QQ and Lark readiness contract
   // Verify copied strict protocol implementation remains byte-identical to both originals.
   const extract = source => source.slice(source.indexOf('function decodedName('), source.indexOf('\n\nexport function createApp'));
   const originalQq = fs.readFileSync(qqSource, 'utf8'), originalLark = fs.readFileSync(larkSource, 'utf8');
-  const local = fs.readFileSync(new URL('../src/protocol.js', import.meta.url), 'utf8');
+  const local = fs.readFileSync(new URL(import.meta.resolve('@dot-bridge/core/router/protocol.js')), 'utf8');
   assert.equal(local.slice(local.indexOf('function decodedName(')).trim(), extract(originalQq).trim());
   assert.equal(extract(originalQq), extract(originalLark));
 });
