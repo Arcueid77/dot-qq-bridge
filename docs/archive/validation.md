@@ -1,5 +1,9 @@
 # 验证记录
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 ## 2026-10-15 独立交付和 Windows 回归修复
 
 基于 `65bad2244eadc89d37f13d10ff065f622959247d` 的修复工作树，

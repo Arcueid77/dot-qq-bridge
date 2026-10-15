@@ -1,5 +1,9 @@
 # 真实接入前的最小清单
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 本页保留早期 OAuth/Webhook 路线的检查模板及当时的授权记录，不能用它
 判定当前 Secure MCP Tunnel 部署状态。正式 Tunnel 入口见
 [tunnel-live.md](tunnel-live.md)、官方扫码见 [official-qr.md](official-qr.md)，
@@ -60,7 +64,7 @@ npm run verify:qq -- C:\private-capture\body.bin C:\private-capture\headers.json
 按 [OpenAI 连接指南](https://developers.openai.com/plugins/deploy/connect-chatgpt) 在允许的账户中开启 developer mode、从 ChatGPT Plugins 注册经批准的 HTTPS `/mcp` 并完成 OAuth。此阶段不接受超出读消息/回复绑定 QQ 会话范围的工具权限。
 
 1. 完成 MCP 鉴权后，先调用 `check_bridge_setup`，arguments 为 `{}`，查看缺失设置名；插件页应列出三个工具。主人绑定完整后显示一个 event，即使 callback 白名单尚未填写。如果客户端只发 legacy initialize，要记录不兼容并解决，不偷偷降级协议。
-2. [plugin/](../plugin/) 提供 portable package 草稿。仅在真实服务器注册后更换 `.invalid` URL；若 ChatGPT 需要 registered app mapping，让官方 plugin-creator 使用真实 technical ID 生成并核对。不要编造 `.app.json` ID，也不要安装到替代 dot。
+2. [plugin/](../../plugin) 提供 portable package 草稿。仅在真实服务器注册后更换 `.invalid` URL；若 ChatGPT 需要 registered app mapping，让官方 plugin-creator 使用真实 technical ID 生成并核对。不要编造 `.app.json` ID，也不要安装到替代 dot。
 3. 在**现有 dot 的对话/任务上下文**里明确启用该插件并请求订阅 `qq.message.created`，参数 `{"conversation":"owner"}`。实际 URL/secret 由 ChatGPT 在订阅时提供，不由桥接伪造，也不需要 OpenAI API key。
 4. 白名单为空时，首次订阅仍被拒绝；受认证错误的 `data.callback_hostname` 和 `data.next_step` 会给出规范化主机名与操作提示，不回显 path/query/secret，也不联系它。主人独立确认是官方 ChatGPT callback 后，显式添加确切 hostname 到 `MCP_CALLBACK_ALLOWED_HOSTS`，重启服务、刷新插件元数据并重试。也可用 `check_bridge_setup` 的 `callback_url` 参数进行同样的只读检查。不要自动信任请求提供的 hostname；预检不证明 DNS/连接安全。真正订阅仍逐次检查 DNS、公网 IP、TLS、禁止重定向和签名 challenge，成功保存后才允许入站排队。
 5. 事件任务只批准必要的绑定会话回复；是否允许免逐条确认及对应权限范围由主人在 ChatGPT 明确选择。本次不替主人接受任何新的持久授权。

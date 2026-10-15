@@ -1,5 +1,9 @@
 # Secure MCP Tunnel runtime setup
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 This is a reusable deployment guide. It contains no deployment-specific Tunnel
 ID, organization/workspace identity, provider AppID, credential or private
 filesystem destination. Repository templates are placeholders and are not usable

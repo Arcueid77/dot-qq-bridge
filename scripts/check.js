@@ -1,3 +1,4 @@
+import { checkDocumentation } from './check-docs.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -12,16 +13,7 @@ for (const file of files) {
 process.stdout.write(`Syntax checked ${files.length} JavaScript files.\n`);
 for (const file of ['package.json', 'plugin/plugin.json', 'plugin/mcp.json']) JSON.parse(fs.readFileSync(file, 'utf8'));
 process.stdout.write('Parsed package and plugin template JSON. Remote plugin installation remains unverified.\n');
-const documents = ['README.md', 'THIRD_PARTY_NOTICES.md', 'plugin/README.md', ...['docs', 'tools/tunnel-stack', 'packages/dot-bridge-tunnel'].flatMap(root =>
-  fs.readdirSync(root, { recursive: true }).filter(file => file.endsWith('.md')).map(file => path.join(root, file)))];
-for (const file of documents) {
-  for (const match of fs.readFileSync(file, 'utf8').matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-    const target = match[1].split('#')[0];
-    if (!target || /^[a-z]+:/i.test(target)) continue;
-    if (!fs.existsSync(path.resolve(path.dirname(file), target))) throw new Error(`Broken local link in ${file}: ${target}`);
-  }
-}
-process.stdout.write(`Checked local links in ${documents.length} Markdown files.\n`);
+checkDocumentation();
 const release = JSON.parse(fs.readFileSync('vendor/core-release.json', 'utf8'));
 const installed = JSON.parse(fs.readFileSync('node_modules/@dot-bridge/core/package.json', 'utf8'));
 const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));

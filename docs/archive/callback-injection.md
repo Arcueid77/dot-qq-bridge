@@ -1,5 +1,9 @@
 # Callback sender injection
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 Both bridges use the same code-only injection names:
 
 - `makePublicRequester({ managedAdapter })` accepts the compatibility adapter shape with exactly one own data property, `send(target, request)`. This shape does not grant a managed transport capability; the default shared transport rejects configured proxy egress even when this function is present.

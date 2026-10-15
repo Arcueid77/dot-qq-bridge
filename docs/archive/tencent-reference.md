@@ -1,5 +1,9 @@
 # 腾讯参考审查与首版差异
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 审查 [tencent-connect/openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot)，固定 commit `a730701d36aa7a070f98d4cba0f340f91f15e5f5`，package version `2.0.3`。另从官方 npm registry 获取它使用的 `@tencent-connect/qqbot-nodejs@1.0.4` 源码包，只静态阅读，禁用 scripts，没有安装/执行 OpenClaw 或导入其推理后端。
 
 SDK tarball integrity：

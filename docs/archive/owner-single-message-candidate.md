@@ -1,5 +1,9 @@
 # QQ owner single-message opt-in
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 This entry is separate from the ordinary service. It receives one ordinary text
 message from the already verified scanning owner, delivers the existing signed
 MCP event, and permits one fixed passive reply. It never performs QR authorization

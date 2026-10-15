@@ -1,5 +1,9 @@
 # 渠道交接给主线程
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 交付范围：官方 QQ Webhook/Gateway → 同一持久队列 → MCP 2.0 Events → 现有 dot → 原入站 ID 的纯文本被动回复。未新建 API 模型机器人，未导出记忆。云端托管、数据库、平台认证和插件接入由主线程处理；本渠道没有创建或部署服务。
 
 ## 最少授权及真实阻塞

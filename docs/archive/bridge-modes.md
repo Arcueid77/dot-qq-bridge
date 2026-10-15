@@ -1,5 +1,9 @@
 # Explicit bridge modes (offline integration)
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 `BRIDGE_MODE=tunnel|sites` is required by the formal entry. There is no fallback.
 Both modes use one approved `BRIDGE_LOCK_DIRECTORY` on this cloud computer.
 The lock key is SHA-256(channel + ':' + AppID), independent of mode and DB path.

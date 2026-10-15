@@ -1,5 +1,7 @@
 # QQ private chat experience
 
+[简体中文](configuration.md) | [English](configuration.en.md) | [Home](../README.en.md)
+
 The original dot still produces the answer. No model API, OpenClaw runtime or
 second bot is introduced. Shared network, filesystem and router implementations
 come exclusively from the fixed core release. QQ-specific operations stay here.
@@ -47,8 +49,22 @@ external action needs confirmation should return to the bound QQ private chat;
 this does not authorize that external action. A ChatGPT task-run confirmation
 does not establish QQ delivery. Report a conflicting platform instruction
 instead of treating a ChatGPT summary as a completed QQ reply or bypassing the
-platform's restriction. See [live acceptance](runtime-acceptance.md) for the
+platform's restriction. See [live acceptance](archive/runtime-acceptance.md) for the
 observed batch conflict and the narrower successful consecutive-message test.
 
 Initial deployment remains owner C2C only. QQ group, guild and other-user messages
 are ignored. There is no unapproved group subscription or all-member access.
+
+## Runtime limits
+
+Set these in the backend environment file, not the router environment:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `REPLY_TTL_SECONDS` | 240 | Local reply deadline |
+| `SUBSCRIPTION_TTL_SECONDS` | 86400 | Subscription lifetime cap, also bounded by the requested TTL and authenticated principal lifetime |
+| `QUEUE_LIMIT` | 100 | Queue capacity |
+| `INBOUND_PER_MINUTE` / `REPLIES_PER_MINUTE` | 10 / 10 | Intake/reply rate limits |
+| `MAX_DELIVERY_ATTEMPTS` | 5 | Bounded attempts, never permission to resend an uncertain reply |
+
+QQ text retention is seven days in code. A retained context record does not extend QQ's passive-reply window or authorize a proactive send.

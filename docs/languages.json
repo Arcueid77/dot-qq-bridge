@@ -1,0 +1,50 @@
+{
+  "default_language": "zh-CN",
+  "archive_policy": "Original language, dated scope; current guides are bilingual.",
+  "pages": [
+    {
+      "zh-CN": "README.md",
+      "en": "README.en.md"
+    },
+    {
+      "zh-CN": "docs/deployment.md",
+      "en": "docs/deployment.en.md"
+    },
+    {
+      "zh-CN": "docs/configuration.md",
+      "en": "docs/configuration.en.md"
+    },
+    {
+      "zh-CN": "docs/troubleshooting.md",
+      "en": "docs/troubleshooting.en.md"
+    },
+    {
+      "zh-CN": "docs/development.md",
+      "en": "docs/development.en.md"
+    },
+    {
+      "zh-CN": "THIRD_PARTY_NOTICES.md",
+      "en": "THIRD_PARTY_NOTICES.en.md"
+    },
+    {
+      "zh-CN": "plugin/README.md",
+      "en": "plugin/README.en.md"
+    },
+    {
+      "zh-CN": "docs/archive/README.md",
+      "en": "docs/archive/README.en.md"
+    },
+    {
+      "zh-CN": "packages/dot-bridge-tunnel/README.md",
+      "en": "packages/dot-bridge-tunnel/README.en.md"
+    },
+    {
+      "zh-CN": "tools/tunnel-stack/README.md",
+      "en": "tools/tunnel-stack/README.en.md"
+    },
+    {
+      "zh-CN": "docs/connection.md",
+      "en": "docs/connection.en.md"
+    }
+  ]
+}

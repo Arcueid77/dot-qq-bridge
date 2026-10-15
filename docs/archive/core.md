@@ -1,5 +1,9 @@
 # 公共组件拆分
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 公共实现的唯一源码仓库为 `dot-bridge-core`。本仓库通过固定版本的
 `@dot-bridge/core` 使用 callback transport、私有平台保护和注册渠道聚合器。
 `vendor/` 保存受审查的发行包和来源清单，lockfile 固定 integrity。

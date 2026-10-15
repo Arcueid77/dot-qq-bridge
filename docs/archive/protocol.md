@@ -1,5 +1,9 @@
 # 核实的协议
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 核实日期：2026-10-02。此表描述已实现的文档契约；真实账户与客户端互通仍见 [activation.md](activation.md)。
 
 ## MCP / OpenAI

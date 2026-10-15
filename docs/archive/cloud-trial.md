@@ -1,5 +1,9 @@
 # QQ 云电脑：已有机器人只读诊断
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 此入口只推进 QQ 官方平台认证与 Gateway 发现，不冒充当前 dot 联通。无新 bot、扫码、消息收发、IDENTIFY、监听端口或持久凭据配置。
 
 ## 无秘密预览

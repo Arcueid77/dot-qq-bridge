@@ -1,5 +1,9 @@
 # 云环境现有代理支持
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 本改动不创建代理、凭据、域名或公网入口，不修改系统代理/网络设置。固定 QQ 平台请求使用 Node 24.15+ 自带 HTTPS Agent 的 proxyEnv；callback 使用另述的共享传输契约，没有声称 Node 内置代理已满足 callback 的安全约束。本次没有安装 npm 依赖。
 
 ## 三条严格分开的网络路径

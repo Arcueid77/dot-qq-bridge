@@ -1,7 +1,7 @@
-# 手动接入模板，尚未注册/安装
+# 插件接入模板
 
-结构依据 OpenAI [Package your plugin](https://developers.openai.com/plugins/build/plugins) 的 portable Agent Plugins 示例。`mcp.json` 使用保留的 `.invalid` 域名，不会指向已发布服务；没有 token、registered app ID、生命周期 hook 或自动授权 skill。
+[简体中文](README.md) | [English](README.en.md) | [首页](../README.md)
 
-经主人批准托管后，再将 URL 改成已验证的 HTTPS `/mcp`。先按 [Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt) 注册、验证 OAuth 和 event discovery。当前 ChatGPT dot 是否需要 registered MCP app 映射，必须由实际 UI/官方 plugin-creator 生成并核对真实 `plugin_asdk_app...` ID；不要编造 ID 或把本模板视为已安装。选择既有 dot 的订阅步骤见 [activation.md](../docs/activation.md)。
+此目录保存手动接入模板，地址中的 `.invalid` 是占位符，JSON 能解析不代表插件已安装或发布。正式使用沿用操作者的原 dot 和官方 Secure MCP Tunnel，按[部署指南](../docs/deployment.md)配置真实目标并建立唯一事件订阅。
 
-本次仅创建仓库模板，不改动个人 marketplace、不安装插件、不创建 automation、不接受持久权限。模板语法会离线检查，但其远程安装与账户可用性未验证。
+不要把凭据、callback 地址或运行时 key 写进模板；客户端的 service header 使用受保护的聚合器 key 文件引用。应用授权、长期凭据和插件/事件权限按实际范围批准，不因模板存在而自动授予。

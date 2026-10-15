@@ -1,5 +1,9 @@
 # QQ 私聊真实运行验收
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 记录日期：2026-10-14 至 2026-10-15（UTC+8）。此记录属于一次明确授权的 VPS 部署，不把离线
 fixture、目录发现或 Gateway connected 当作所有部署的端到端保证。
 使用已有 QQ 官方应用、官方本人扫码证据、原 dot 和原 Secure MCP Tunnel；

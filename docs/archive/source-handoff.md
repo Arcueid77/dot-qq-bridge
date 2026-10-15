@@ -1,5 +1,9 @@
 # Source-only handoff
 
+> 历史归档 / Historical archive: 保留原始语言及当时的适用范围，不作为当前部署指南。
+> This record retains its original language and dated scope. Start with the [current guide](../deployment.en.md) / [现行指南](../deployment.md).
+
+
 This delivery contains source, tests and generic configuration templates. It contains no runtime keys, provider identities, callback addresses, private databases, logs, tunnel-client binaries or deployment state.
 
 ## Standalone source layout
@@ -55,7 +59,7 @@ siblings named `dot-qq-bridge` and `dot-lark-bridge`, install each lockfile, and
 `node --test --test-concurrency=1 packages/dot-bridge-tunnel/test/*.test.js`
 from QQ. Check that actual-sibling cases run rather than skip. Shared transport
 tests belong to the core source repository and run with its `npm test`.
-The finite-window [development launcher](../tools/tunnel-stack/README.md) still
+The finite-window [development launcher](tunnel-stack-development.md) still
 uses this two-adapter layout; ordinary persistent single-QQ service does not.
 
 ## Safe continuation
