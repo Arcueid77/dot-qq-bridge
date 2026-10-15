@@ -2,7 +2,7 @@
 
 [简体中文](deployment.md) | [English](deployment.en.md) | [首页](../README.md)
 
-本文是单渠道官方 Secure MCP Tunnel 的现行流程。拓扑为原 dot → 官方 tunnelclient → loopback 聚合器 → QQ 后端。只克隆本仓库；未部署渠道不需要源码、凭据或 readiness 服务。OAuth/Webhook、Sites 和有限时诊断的旧流程保存在归档，不用于下面的部署。
+本文是单渠道官方 Secure MCP Tunnel 的现行流程。拓扑为原 dot → 官方 tunnelclient → loopback 聚合器 → QQ 后端。只克隆本仓库；未部署渠道不需要源码、凭据或 readiness 服务。以下步骤只用于此常驻 Tunnel 拓扑。
 
 ## 1. 检查环境并固定源码
 

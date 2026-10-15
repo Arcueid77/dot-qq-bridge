@@ -1,6 +1,5 @@
 {
   "default_language": "zh-CN",
-  "archive_policy": "Original language, dated scope; current guides are bilingual.",
   "pages": [
     {
       "zh-CN": "README.md",
@@ -31,20 +30,12 @@
       "en": "plugin/README.en.md"
     },
     {
-      "zh-CN": "docs/archive/README.md",
-      "en": "docs/archive/README.en.md"
-    },
-    {
       "zh-CN": "packages/dot-bridge-tunnel/README.md",
       "en": "packages/dot-bridge-tunnel/README.en.md"
     },
     {
       "zh-CN": "tools/tunnel-stack/README.md",
       "en": "tools/tunnel-stack/README.en.md"
-    },
-    {
-      "zh-CN": "docs/connection.md",
-      "en": "docs/connection.en.md"
     }
   ]
 }

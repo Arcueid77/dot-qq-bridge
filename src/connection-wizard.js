@@ -36,7 +36,7 @@ export function connectionPlan() {
       'Explicitly confirm one returned app-specific owner openid, or an independently verified QQ message identity',
       'Configure secrets in the specifically approved cloud runtime', 'Approve tunnel/endpoint access, plugin link, subscriptions and fee limit'],
     alternative: 'After approval, use existing official QQ console credentials and a verified owner openid; no QR package is required for Gateway.',
-    next_step: 'Review docs/connection.md. Use --demo for a synthetic interface exercise or --inspect FILE for an already authorized local result. Use scripts/qq-official-scan.js --plan for the source-integrated official SDK scanner.' };
+    next_step: 'Review docs/deployment.md. Use --demo for a synthetic interface exercise or --inspect FILE for an already authorized local result. Use scripts/qq-official-scan.js --plan for the source-integrated official SDK scanner.' };
 }
 
 // Prepared against the public startQrConnect callback contract. No connector package is

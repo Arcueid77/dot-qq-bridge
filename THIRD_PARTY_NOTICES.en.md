@@ -1,18 +1,14 @@
-# Reference review
+# Sources and dependencies
 
 [简体中文](THIRD_PARTY_NOTICES.md) | [English](THIRD_PARTY_NOTICES.en.md) | [Home](README.en.md)
 
-The bridge is implemented from public protocol specifications using Node.js built-in modules and the MIT `ws@8.21.0` runtime dependency, downloaded from the official npm registry with lifecycle scripts disabled. Its exact version and integrity are locked in `package-lock.json`; its copyright and license are preserved in [licenses/ws-MIT.txt](licenses/ws-MIT.txt). No optional native peers are installed. The repository's existing MIT LICENSE is unchanged.
+The project's [MIT LICENSE](LICENSE) is unchanged and does not replace the licenses of dependencies or runtime components.
 
-The following records describe the initial static-review stage. The subsequent official scanner integration is documented in the final section.
+- `ws@8.21.0` is a pinned MIT runtime dependency. Its copyright and license are retained in [licenses/ws-MIT.txt](licenses/ws-MIT.txt); `package-lock.json` fixes version and integrity. Optional native peers are not installed.
+- `@tencent-connect/qqbot-connector@1.2.0` is integrated through its public `startQrConnect` API. The pinned package metadata is `UNLICENSED` with no separate LICENSE. Tencent's MIT wrapper does not relicense that dependency, and its internals are not copied into this source tree. Distribution or commercial use needs a separate review of granted rights; the project's license cannot substitute for them. See [Deployment](docs/deployment.en.md) for scanning and credential storage.
+- Tencent Connect's [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot), fixed commit `a730701d36aa7a070f98d4cba0f340f91f15e5f5`, was reviewed for protocol behavior without importing its runtime. Its [MIT LICENSE](https://github.com/tencent-connect/openclaw-qqbot/blob/a730701d36aa7a070f98d4cba0f340f91f15e5f5/LICENSE) names sliverp / Tencent Connect.
+- `@tencent-connect/qqbot-nodejs@1.0.4` was used only for static protocol review, declares MIT in metadata and is not a runtime dependency. The reviewed archive integrity is `sha512-gU5HySLplczZXMUjM7NtiUACY7YfX9YlI/R9PKzCLMgLmHvwsX9L2sitsrYPMentGUr9b8NLfSaSTsndF77NBA==`.
+- Shared implementation comes from the pinned `@dot-bridge/core` distribution; `vendor/core-release.json` records version, source revision and hash. No separate implementation copy is maintained here.
+- Node.js and the [official Node Docker image](https://github.com/nodejs/docker-node) carry component-specific licenses. Retain applicable notices when distributing an image containing dependencies.
 
-- Tencent Connect's [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot), commit `a730701d36aa7a070f98d4cba0f340f91f15e5f5`, MIT, copyright notice naming sliverp / Tencent Connect (see its [LICENSE](https://github.com/tencent-connect/openclaw-qqbot/blob/a730701d36aa7a070f98d4cba0f340f91f15e5f5/LICENSE)).
-- `@tencent-connect/qqbot-nodejs@1.0.4`, published package metadata declares MIT; downloaded only for static protocol review from `registry.npmjs.org` with lifecycle scripts disabled. Integrity recorded in [docs/tencent-reference.md](docs/archive/tencent-reference.md).
-- `@tencent-connect/qqbot-connector@1.2.0`: package metadata declares `UNLICENSED`, with no LICENSE file. Downloaded outside the repository only for README, public type declarations, package metadata and file-list review. At that initial stage its runtime code was not copied, imported, installed, bundled or executed. The prepared callback interface is our implementation against the published API contract; real use requires a separately reviewed grant and owner authorization. See [docs/connection.md](docs/archive/connection.md).
-- [Standard Webhooks specification](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md) and the MCP/OpenAI/QQ protocol sources linked in [docs/protocol.md](docs/archive/protocol.md). No Standard Webhooks library source is bundled.
-
-The deployment template uses the [official Node Docker image](https://github.com/nodejs/docker-node). No image was built or redistributed during this work. A future deployed image carries its own operating-system and Node component licenses; retain those notices when distributing it.
-
-## Official QR dependency (2026-10-02)
-
-`@tencent-connect/qqbot-connector@1.2.0` is installed as an ordinary pinned npm dependency using its publicly documented API. Its metadata remains UNLICENSED and no separate license file is bundled. Tencent's MIT OpenClaw wrapper imports the same package, but does not relicense it. No dependency implementation is copied into this source tree or redistributed by this local commit. Normal integration evidence and publication limits are documented in the [official scanner archive](docs/archive/official-qr.md). Its transitive qrcode-terminal dependency is fixed by package-lock.json.
+Public protocol sources: [QQ documentation](https://bot.q.qq.com/wiki/), [Tencent SDK usage](https://github.com/tencent-connect/qqbot-nodejs/blob/main/USAGE.md), [MCP Events](https://developers.openai.com/plugins/build/mcp-events), [OpenAI authentication](https://developers.openai.com/plugins/build/auth) and [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md). The bridge implements its own restricted requests, signing and durable state without reproducing official documentation or copying Standard Webhooks library source.

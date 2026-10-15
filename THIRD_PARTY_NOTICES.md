@@ -1,18 +1,14 @@
-# 来源审查
+# 来源与依赖
 
 [简体中文](THIRD_PARTY_NOTICES.md) | [English](THIRD_PARTY_NOTICES.en.md) | [首页](README.md)
 
-本桥按公开协议规范实现，使用 Node.js 内置模块和 MIT 运行依赖 `ws@8.21.0`。该包从官方 npm registry 下载，禁用生命周期脚本；精确版本和 integrity 固定在 `package-lock.json`，版权与许可证保存在 [licenses/ws-MIT.txt](licenses/ws-MIT.txt)。不安装可选原生 peer。仓库原有 MIT LICENSE 保持不变。
+本项目的 [MIT LICENSE](LICENSE) 保持不变；该许可不替代第三方依赖或运行环境各自的许可。
 
-以下为最初静态审查阶段的记录；当前官方扫码包作为依赖的使用状态见本页末节。
+- `ws@8.21.0` 是固定版本的 MIT 运行依赖；版权与许可证见 [licenses/ws-MIT.txt](licenses/ws-MIT.txt)。版本和包 integrity 在 `package-lock.json` 中保存，不安装可选原生 peer。
+- `@tencent-connect/qqbot-connector@1.2.0` 通过公开 `startQrConnect` API 集成，固定包 metadata 为 `UNLICENSED`，未附独立 LICENSE。腾讯 MIT 包装层不使该依赖自动获得 MIT 许可；本源码树不复制其内部实现。分发或商业使用需单独核对授权范围，不能用本项目许可覆盖。实际扫码及凭据保存见[部署指南](docs/deployment.md)。
+- 腾讯 Connect 的 [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot) 固定提交 `a730701d36aa7a070f98d4cba0f340f91f15e5f5` 仅供协议审查，未导入其运行时。其 [MIT LICENSE](https://github.com/tencent-connect/openclaw-qqbot/blob/a730701d36aa7a070f98d4cba0f340f91f15e5f5/LICENSE) 署名 sliverp / Tencent Connect。
+- `@tencent-connect/qqbot-nodejs@1.0.4` 仅用于静态协议审查，metadata 为 MIT，未作为运行依赖。审查包 integrity 为 `sha512-gU5HySLplczZXMUjM7NtiUACY7YfX9YlI/R9PKzCLMgLmHvwsX9L2sitsrYPMentGUr9b8NLfSaSTsndF77NBA==`。
+- 共享实现来自固定 `@dot-bridge/core` 发行包；版本、来源 revision 和 hash 见 `vendor/core-release.json`。不另维护共享实现副本。
+- Node.js 及 [官方 Node Docker 镜像](https://github.com/nodejs/docker-node) 有自身组件许可。分发含依赖的镜像时保留全部适用声明。
 
-- 腾讯 Connect 的 [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot)，提交 `a730701d36aa7a070f98d4cba0f340f91f15e5f5`，MIT，版权声明署名 sliverp / Tencent Connect，见固定提交的 [LICENSE](https://github.com/tencent-connect/openclaw-qqbot/blob/a730701d36aa7a070f98d4cba0f340f91f15e5f5/LICENSE)。仅审查，未导入或打包运行源码。
-- `@tencent-connect/qqbot-nodejs@1.0.4` 的发布 metadata 声明 MIT；仅从 `registry.npmjs.org` 下载供静态协议审查，禁用生命周期脚本。Integrity 见 [腾讯参考](docs/archive/tencent-reference.md)。
-- `@tencent-connect/qqbot-connector@1.2.0` 的 metadata 声明 `UNLICENSED`，没有 LICENSE 文件。最初在仓库外下载，仅审查 README、公开类型声明、metadata 和文件列表；当时未复制、导入、安装、打包或执行运行代码。准备的 callback 接口是按公开契约自行实现，真实使用需独立许可审查和主人授权，见 [连接向导](docs/archive/connection.md)。
-- [Standard Webhooks 规范](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md)，以及 [协议](docs/archive/protocol.md) 中引用的 MCP/OpenAI/QQ 来源。未打包 Standard Webhooks 库源码。
-
-部署模板使用 [官方 Node Docker 镜像](https://github.com/nodejs/docker-node)。上述工作未构建或再分发镜像。未来部署镜像包含自身操作系统与 Node 组件许可证，分发时必须保留相关声明。
-
-## 官方扫码依赖（2026-10-02）
-
-`@tencent-connect/qqbot-connector@1.2.0` 后续已作为普通固定版本 npm 依赖，通过公开 API 使用。其 metadata 仍为 UNLICENSED，未附单独许可证。腾讯 MIT OpenClaw 包装层导入同一包，但不会使该依赖重新获得 MIT 许可。本源码树没有复制依赖实现，本地提交不包含该依赖的再分发。正常集成证据和发布限制见 [官方扫码](docs/archive/official-qr.md)。传递依赖 qrcode-terminal 由 `package-lock.json` 固定。
+公开协议依据：[QQ 官方协议](https://bot.q.qq.com/wiki/)、[腾讯 SDK 使用说明](https://github.com/tencent-connect/qqbot-nodejs/blob/main/USAGE.md)、[MCP Events](https://developers.openai.com/plugins/build/mcp-events)、[OpenAI 鉴权](https://developers.openai.com/plugins/build/auth)、[Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md)。本桥自行实现受限请求、签名与持久状态，不复制官方文档全文或 Standard Webhooks 库源码。

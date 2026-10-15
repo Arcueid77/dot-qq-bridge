@@ -25,7 +25,7 @@ export function checkDocumentation() {
     }
   }
   for (const file of documents) {
-    if (!paired.has(file) && !file.startsWith('docs/archive/')) throw new Error('Current document lacks a language pair: ' + file);
+    if (!paired.has(file)) throw new Error('Current document lacks a language pair: ' + file);
     const raw = fs.readFileSync(file, 'utf8');
     if (/\{\{CODE:\d+\}\}/.test(raw)) throw new Error('Unexpanded code block in ' + file);
     const content = raw.replace(/^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm, '');
@@ -35,5 +35,5 @@ export function checkDocumentation() {
       if (!fs.existsSync(path.resolve(path.dirname(file), target))) throw new Error('Broken local link in ' + file + ': ' + target);
     }
   }
-  process.stdout.write('Checked ' + manifest.pages.length + ' bilingual pairs and local links in ' + documents.length + ' Markdown files (historical originals retained).\n');
+  process.stdout.write('Checked ' + manifest.pages.length + ' bilingual pairs and local links in ' + documents.length + ' Markdown files.\n');
 }

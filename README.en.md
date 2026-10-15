@@ -22,7 +22,7 @@ Clone only this repository. A pinned `@dot-bridge/core` distribution is included
 | Diagnose missing replies, expiry, backups and upgrades | [Operations and troubleshooting](docs/troubleshooting.en.md) |
 | Change code, add IM adapters or contribute a PR | [Development](docs/development.en.md) |
 
-Previous designs and dated acceptance evidence are in the [historical archive](docs/archive/README.en.md). They are not required reading for a new installation.
+Completed handoffs and duplicate guides have been removed from the current tree; use Git history when tracing earlier work.
 
 ## Offline checks
 
@@ -38,7 +38,7 @@ npm run simulate:gateway
 
 Linux and native Windows have platform-specific private-file protection. Other operating systems are not supported for private Tunnel operation. The guide covers persistent Linux systemd services; Windows needs a separately configured background service with graceful stopping. A Docker template exists, but image building and runtime acceptance require separate verification.
 
-Tests use synthetic identities and local services. The 2026-10-15 standalone Windows regression recorded 226 passes, zero failures and zero skips. A separate [VPS acceptance record](docs/archive/runtime-acceptance.md) documents actual replies. Combined batches, visible client effects and natural subscription renewal retain acceptance gaps; one deployment does not prove every environment.
+Tests use synthetic identities and local services. The 2026-10-15 standalone Windows regression recorded 226 passes, zero failures and zero skips. A separate [validation scope](docs/development.en.md) documents actual replies. Combined batches, visible client effects and natural subscription renewal retain acceptance gaps; one deployment does not prove every environment.
 
 ## Authorization and license
 

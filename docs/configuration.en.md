@@ -49,7 +49,7 @@ external action needs confirmation should return to the bound QQ private chat;
 this does not authorize that external action. A ChatGPT task-run confirmation
 does not establish QQ delivery. Report a conflicting platform instruction
 instead of treating a ChatGPT summary as a completed QQ reply or bypassing the
-platform's restriction. See [live acceptance](archive/runtime-acceptance.md) for the
+platform's restriction. See [troubleshooting](troubleshooting.en.md) for the
 observed batch conflict and the narrower successful consecutive-message test.
 
 Initial deployment remains owner C2C only. QQ group, guild and other-user messages

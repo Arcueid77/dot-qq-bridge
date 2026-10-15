@@ -42,7 +42,7 @@ Replace the Node path. Status reads queue counts without sending or decrypting t
 | dead / cancelled | Check sanitized errors, provider grants or revocation. A new subscription does not authorize old-generation work |
 | Lock conflict | Confirm the old process has fully exited and reconcile sends before explicit recovery; a new database path does not fix duplicate consumers |
 
-QQ's native input notification lasts about 60 seconds; it is not periodically renewed and does not extend the default 240-second reply window. Native streaming/Markdown need actual app capability; provider rejection is not delivery. A historical combined batch carried a ChatGPT-only confirmation requirement; see the [acceptance record](archive/runtime-acceptance.md). Passing two consecutive messages does not prove all combined batches. Report platform conflicts rather than bypassing them.
+QQ's native input notification lasts about 60 seconds; it is not periodically renewed and does not extend the default 240-second reply window. Native streaming/Markdown need actual app capability; provider rejection is not delivery. A historical combined batch carried a ChatGPT-only confirmation requirement; see the [validation scope](development.en.md). Passing two consecutive messages does not prove all combined batches. Report platform conflicts rather than bypassing them.
 
 ## Subscription and credential maintenance
 
@@ -65,4 +65,4 @@ SIGTERM stops intake/claims, waits for work and closes the database. Events may 
 
 Runtime logs use fixed states, counts, booleans and timestamps, not credentials, identities, message bodies or full callback/WSS URLs. Configure actual journal/log retention and size limits on the host. This repository does not set the host policy or promise seven-day logs for every installation.
 
-Text/replies default to seven-day logical cleanup; deduplication tombstones remain and disk use needs monitoring. Old database pages, WAL, backups and system logs have separate retention. Logical deletion is not physical erasure. Messages during long outages or inactive subscriptions may be unrecoverable. See the [archive](archive/README.en.md) for dated evidence and acceptance gaps.
+Text/replies default to seven-day logical cleanup; deduplication tombstones remain and disk use needs monitoring. Old database pages, WAL, backups and system logs have separate retention. Logical deletion is not physical erasure. Messages during long outages or inactive subscriptions may be unrecoverable. See [Development](development.en.md) for recorded validation scope and acceptance gaps.

@@ -2,7 +2,7 @@
 
 [简体中文](deployment.md) | [English](deployment.en.md) | [Home](../README.en.md)
 
-This is the current single-channel official Secure MCP Tunnel workflow: original dot → official tunnelclient → loopback router → QQ backend. Clone only this repository. Undeployed channels need no source, credentials or readiness service. Previous OAuth/Webhook, Sites and finite diagnostic workflows remain in the archive.
+This is the current single-channel official Secure MCP Tunnel workflow: original dot → official tunnelclient → loopback router → QQ backend. Clone only this repository. Undeployed channels need no source, credentials or readiness service. The steps below cover this persistent Tunnel topology.
 
 ## 1. Inspect the host and pin the source
 
