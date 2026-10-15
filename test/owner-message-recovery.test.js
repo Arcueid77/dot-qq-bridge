@@ -1,17 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Bridge } from '../src/bridge.js';
 import { readConfig } from '../src/config.js';
 import { installQqOwnerMessagePolicy } from '../src/owner-message-policy.js';
 import { preflightCallbackTransport } from '@dot-bridge/core/transport';
+import { privateMkdtempSync, cleanupPrivateFixture } from '@dot-bridge/core/platform/test-fixtures.js';
 
 const KEY = 'qq_owner_single_message:v1', CONTEXT = 'qq-owner-single-message:v1';
 function fixture(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'qq-owner-recovery-'));
-  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const directory = privateMkdtempSync(path.join(os.tmpdir(), 'qq-owner-recovery-'));
+  cleanupPrivateFixture(t, directory);
   const config = readConfig({ AUTH_MODE: 'dev', DEV_BEARER_TOKEN: 'synthetic-fixture-token-000000000000', MCP_OWNER_SUBJECT: 'fixture-principal', QQ_APP_ID: 'fixture-app',
     QQ_BOT_SECRET: 'fixture-secret', QQ_OWNER_OPENID: 'owner', STORAGE_KEY: Buffer.alloc(32, 7).toString('base64'), MCP_CALLBACK_ALLOWED_HOSTS: 'receiver.example.com', DATABASE_PATH: path.join(directory, 'original.sqlite') });
   let providerCalls = 0;

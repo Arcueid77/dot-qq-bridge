@@ -6,10 +6,12 @@ QQ 官方机器人本人单聊文字 → 自建 MCP Events → **订阅所在的
 
 ## 立即运行离线验证
 
-需要 Node.js **24.15+、低于 25**。依赖固定为 `ws@8.21.0` 与官方扫码 connector `@tencent-connect/qqbot-connector@1.2.0`，版本及 integrity 见 lockfile。无需填写任何账户凭据。在仓库根目录运行：
+需要 Node.js **24.15+、低于 25**，TLS 测试需 PATH 上已有受信任的 OpenSSL。
+Windows 还需已有 Python 3.10+ 和本地 NTFS，私有目录由原生 DACL 保护；
+环境与独立部署见 [公共组件](docs/core.md)。依赖固定为 `ws@8.21.0` 与官方扫码 connector `@tencent-connect/qqbot-connector@1.2.0`，版本及 integrity 见 lockfile。无需填写任何账户凭据。在仓库根目录运行：
 
 ```powershell
-npm ci --ignore-scripts --registry=https://registry.npmjs.org
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 npm run check
 npm test
 npm run simulate
@@ -33,7 +35,7 @@ Windows 如果 PowerShell 限制 `npm.ps1`，使用 `npm.cmd`。依赖下载只�
 
 当前验证记录见 [docs/validation.md](docs/validation.md)。可选覆盖率检查：`npm run test:coverage`。
 
-## 两个仓库的可移植部署
+## 独立部署与可选双渠道开发
 
 公共回调传输、私有文件保护和通用聚合器已抽到 `dot-bridge-core`，本仓库安装固定版本 `@dot-bridge/core`，发行包在 `vendor/`。飞书可单独部署，不再引用本仓库。原 `packages/dot-bridge-tunnel` 仅保留注册实际适配器的薄兼容入口和测试，旧双渠道开发启动器需要两个适配器源码；正式单 QQ 聚合器使用 `scripts/run-tunnel-router.js`。
 

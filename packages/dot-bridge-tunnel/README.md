@@ -1,5 +1,11 @@
 # Private QQ + Lark MCP tunnel router
 
+This directory is a thin compatibility host for the optional two-adapter
+development stack and its regression tests. Public routing code is maintained
+only in `dot-bridge-core` and installed as the pinned `@dot-bridge/core` package.
+Single-QQ persistent deployment uses `scripts/run-tunnel-router.js` from the QQ
+root and needs no Feishu source or backend; see [core deployment](../../docs/core.md).
+
 One loopback MCP endpoint for the official tunnelclient's single global
 `mcp.extra_headers` map. **Readiness is the default.** The additional live routing
 mode is explicit, channel-scoped and implemented/tested offline. This code alone
@@ -10,7 +16,7 @@ It does not launch QQ/Lark processes, own provider connections or contact callba
 
 - Linux or native Windows NTFS. The deployed sibling stack uses Node 24.15+ in
   major 24; Windows additionally uses an existing Python 3 interpreter and the
-  sibling [private-file platform layer](../dot-bridge-platform/README.md).
+  installed core [private-file platform layer](../../docs/core.md).
 - Three independent service credentials: aggregate ingress, QQ upstream, Lark
   upstream. File paths **and credential contents** must differ. Provider secrets,
   OAuth tokens, client identity claims and provider IDs are never used.
@@ -248,26 +254,25 @@ local reachability still do not prove provider connection or end-to-end delivery
 
 ### Shared callback dependency
 
-Use two sibling clones with these exact repository directory names:
+Only this optional dual-adapter host uses two sibling clones with these names:
 
 ```text
 deployment-root/
   dot-qq-bridge/
     packages/
-      dot-bridge-transport/
       dot-bridge-tunnel/
+    vendor/dot-bridge-core-0.2.1.tgz
   dot-lark-bridge/
 ```
 
-The aggregate entrypoint from the QQ root is
-`node packages/dot-bridge-tunnel/src/main.js`; the shared module is
-`packages/dot-bridge-transport/index.js`. Aggregate and transport must remain
-adjacent packages. Lark imports the single transport copy in the sibling QQ
-checkout. No top-level transport/aggregate clone, diagnostic publisher, logs or
-runtime credentials are included. Each person deploys their own repositories,
-Tunnel and private credentials. The packages have no third-party dependencies;
-full QQ/Lark integration requires Node 24.15–24.x and each backend's pinned
-dependencies, installed through its separately approved setup workflow.
+The legacy entrypoint from the QQ root is
+`node packages/dot-bridge-tunnel/src/main.js`. It registers the actual QQ and
+Feishu adapters with the installed core router. Feishu owns its contract at
+`src/tunnel-contract.js` and its adapter at `src/tunnel-adapter.js`; it does not
+import QQ's transport or schema. Both consumers install their reviewed core
+archive through their own lockfile. No third core checkout is required, and no
+credentials, logs or private runtime state are included. Full dual-adapter
+regression requires Node 24.15–24.x and each backend's pinned dependencies.
 
 The production callback route is explicitly selected by backend code and cannot
 be selected by a caller-supplied destination or header. Managed-proxy selection
@@ -279,8 +284,8 @@ requirements for that adapter; its presence alone is not independent proof.
 
 ## Verification
 
-The optional Lark experience contract lives only in `src/lark-contract.js` and is
-imported by the sibling backend. It adds context, bounded MCP attachments,
+The optional Lark experience contract is owned by the Feishu repository;
+`src/lark-contract.js` here is only a compatibility re-export. It adds context, bounded MCP attachments,
 media replies and genuine generated-text card updates. `conversation:configured`
 is Lark-only; the backend's protected policy decides group/member/trigger scope.
 QQ catalogs, credentials and provider gates do not change. Only an explicitly
@@ -292,19 +297,16 @@ groups, images, bot-info, CardKit and callback responses; they do not prove live
 platform grants, model content support or end-to-end delivery.
 
 ```sh
-node --test
+node --test --test-concurrency=1 test/*.test.js
 ```
 
 Alternatively, from the QQ root run
-`node --test packages/dot-bridge-tunnel/test/*.test.js` and
-`node --test packages/dot-bridge-transport/test/*.test.js`. The source-copy test
-checks all copied files against `../source-copies.json`, including original
-source hashes. Runtime sources, package metadata and unchanged tests are exact
-copies. These READMEs and the sibling-contract lookup were adapted for the
-repository layout; the shared package also preserves extracted pure transport
-regressions, with their original source hash and adaptation recorded. Update the
-manifest deliberately when modifying a packaged copy after this snapshot. No
-temporary publisher, server, CLI or deployment code is bundled.
+`node --test --test-concurrency=1 packages/dot-bridge-tunnel/test/*.test.js`.
+The source-boundary test verifies that these compatibility modules import the
+canonical core instead of maintaining independent shared implementations.
+Transport/platform/router regressions and extraction provenance live in the
+core source repository and run with its `npm test`. Do not recreate the removed
+shared source directories in QQ.
 
 Tests use public deterministic synthetic keys in fresh temporary 0700 directories
 and temporary loopback servers. They never load deployed credentials, contact
@@ -315,9 +317,11 @@ redaction, transport limits, timeout and process shutdown.
 
 When the enclosing `dot-qq-bridge` and its sibling `dot-lark-bridge` source trees
 are present in the layout above,
-the suite additionally exercises their actual readiness and live/pending-policy
+the suite exercises their actual readiness and live/pending-policy
 contracts with synthetic credential fixtures. Readiness uses in-memory stores;
 live fixtures use fresh temporary stores, disabled workers and blocked external
 request functions. It asserts zero provider/challenge/gateway calls and compares
-the original protocol validator byte-for-byte. Compatibility groups are skipped
-if sibling source trees are absent; standalone fake-upstream tests still run.
+the original protocol validator byte-for-byte. This optional two-adapter suite
+requires both installed checkouts because its compatibility entrypoint registers
+both adapters. Run QQ's root `npm test` for standalone QQ regression; the default
+suite does not import this legacy host or another IM repository.

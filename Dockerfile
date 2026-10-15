@@ -3,12 +3,12 @@
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/data/bridge.sqlite
 WORKDIR /app
-RUN mkdir -p /data && chown node:node /data /app
+RUN mkdir -p /data && chown node:node /data /app && chmod 0700 /data
 COPY --chown=node:node package.json package-lock.json LICENSE THIRD_PARTY_NOTICES.md ./
+COPY --chown=node:node vendor/ ./vendor/
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org && npm cache clean --force
 COPY --chown=node:node src/ ./src/
 COPY --chown=node:node scripts/ ./scripts/
-COPY --chown=node:node packages/dot-bridge-transport/ ./packages/dot-bridge-transport/
 USER node
 VOLUME ["/data"]
 EXPOSE 3000

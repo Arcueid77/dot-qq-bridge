@@ -1,9 +1,12 @@
 # Private QQ Tunnel live operation
 
-Implementation status (2026-10-03): prepared and tested offline only. No actual
+Historical implementation status (2026-10-03): prepared and tested offline only. No actual
 QQ scan, provider request, bot message, Events task, long-running service,
 credential read/generation/persistence, or deployment occurred during this work.
 All credential fixtures and queue exercises used synthetic values under `/tmp`.
+The later authorized deployment evidence and its limits are recorded separately
+in [runtime-acceptance.md](runtime-acceptance.md). New installations still need
+their own approved credentials, unique consumer and current-dot subscription.
 
 ## Separate readiness and live operations
 
@@ -116,13 +119,14 @@ TTL bounded by both configured subscription lifetime and authenticated service
 principal lifetime.
 
 Both the real subscription challenge and queued event delivery explicitly use
-the shared callback transport bundled at `packages/dot-bridge-transport`.
+the installed `@dot-bridge/core/transport` release pinned in `vendor/` and the lockfile.
 An existing managed proxy without a supported callback adapter fails closed
 before local DNS or request creation; it never falls back to `agent:false`
 direct egress. Provider, OAuth and Sites call paths retain their separate scope.
-Keep this repository’s package layout intact. For the optional aggregate bridge,
-clone `dot-qq-bridge` and `dot-lark-bridge` beside one another under one parent
-directory; the aggregate lives in `packages/dot-bridge-tunnel` of this repository. No environment boolean can assert a
+Keep the vendored release and lockfile together. The single-QQ aggregate entry is
+`scripts/run-tunnel-router.js --confirm-live`; no other IM backend is needed.
+Only the optional legacy two-adapter launcher/compatibility suite uses a sibling
+Feishu checkout. See [core.md](core.md). No environment boolean can assert a
 verified proxy contract, and a passing injected-adapter test is not evidence of
 real platform callback delivery.
 
@@ -156,7 +160,7 @@ provider acknowledgement is automatically resent.
 
 ## Storage, locks and cleanup
 
-Native Windows uses the shared [NTFS/DACL/handle platform layer](../packages/dot-bridge-platform/README.md), with a protected owner/SYSTEM-only parent, bounded private reads, atomic exclusive credential publication, pinned SQLite handles and native mode leases. Existing ACLs are validated and never repaired automatically. The POSIX modes and descriptor details below describe the Linux branch. Neither platform's offline results authorize real key reuse, callback approval or Events subscriptions.
+Native Windows uses the installed core [NTFS/DACL/handle platform layer](core.md), with a protected owner/SYSTEM-only parent, bounded private reads, atomic exclusive credential publication, pinned SQLite handles and native mode leases. Existing ACLs are validated and never repaired automatically. The POSIX modes and descriptor details below describe the Linux branch. Neither platform's offline results authorize real key reuse, callback approval or Events subscriptions.
 
 Linux descriptor-relative directory traversal rejects symlink components. Private
 leaf directories must be owned by the process user with exact mode 0700; key,

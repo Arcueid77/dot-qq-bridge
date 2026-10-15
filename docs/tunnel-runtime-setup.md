@@ -7,21 +7,22 @@ runtime configuration until the operator supplies their own approved values.
 
 ## Repository layout
 
-For QQ alone, clone this repository and retain its bundled packages:
+For QQ alone, clone this repository with its pinned core distribution:
 
 ```text
 parent-directory/
   dot-qq-bridge/
     src/
-    packages/dot-bridge-transport/
-    packages/dot-bridge-tunnel/
+    scripts/run-tunnel-router.js
+    vendor/dot-bridge-core-0.2.1.tgz
+    package-lock.json
 ```
 
-For the optional two-channel aggregate, clone `dot-lark-bridge` beside
-`dot-qq-bridge` under the same parent directory. The shared callback transport and
-aggregate entrypoint are bundled in the QQ repository; no third sibling checkout
-or machine-specific workspace path is required. See the root handoff guide and
-`packages/dot-bridge-tunnel` for the aggregate configuration.
+Install the lockfile; shared transport/platform/router code comes from the
+immutable `@dot-bridge/core` package. `scripts/run-tunnel-router.js` registers
+only QQ and needs no Feishu backend or source checkout. See [core.md](core.md).
+Only the optional legacy dual-adapter launcher and compatibility suite require
+the Feishu repository beside QQ with both sets of dependencies installed.
 
 ## Authentication boundary
 

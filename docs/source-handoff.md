@@ -2,41 +2,61 @@
 
 This delivery contains source, tests and generic configuration templates. It contains no runtime keys, provider identities, callback addresses, private databases, logs, tunnel-client binaries or deployment state.
 
-## Clone layout
+## Standalone source layout
 
-Clone the two repositories below under the same parent directory, preserving their directory names:
+For QQ, clone only this repository at the reviewed commit. Keep its vendored core
+release and lockfile together:
 
 ```text
 work/
-  dot-qq-bridge/       branch feat/qq-mcp-events-v1
-    packages/dot-bridge-transport/
-    packages/dot-bridge-tunnel/
-    tools/tunnel-stack/
-  dot-lark-bridge/     branch feat/owner-only-lark-mcp-events
+  dot-qq-bridge/
+    src/
+    scripts/run-tunnel-router.js
+    vendor/dot-bridge-core-0.2.1.tgz
+    vendor/core-release.json
+    package-lock.json
 ```
 
-The repositories are `https://github.com/AvaloNero/dot-qq-bridge` and `https://github.com/AvaloNero/dot-lark-bridge`. Use the exact handoff commit IDs when reproducing a reviewed snapshot; branch tips can change.
+Record the exact QQ Git revision, core version, source revision and artifact hash
+when handing off a deployment. Branch tips can change. `vendor/core-release.json`
+and the lockfile pin the reviewed package; no core source checkout is needed.
 
-The shared transport is maintained in the QQ repository. Both bridge applications and the aggregate router use that one source. Do not copy an older standalone shared directory alongside the clones.
+Shared transport, platform protection and routing have their only canonical
+source in `dot-bridge-core`. QQ installs `@dot-bridge/core` from its included
+release archive. Feishu also deploys independently from its own repository; it
+does not import QQ source or require a QQ readiness backend. See [core.md](core.md).
 
 ## Offline checks
 
-Use Linux or native Windows on local NTFS, with Node 24.15 or later within major version 24 and an existing Python 3.10+ interpreter. Windows safety and test boundaries are documented in [the platform layer](../packages/dot-bridge-platform/README.md); an actual Linux regression run remains separate. Install each repository's locked dependencies from the official npm registry with lifecycle scripts disabled. No account credentials are needed for checks.
+Use Node 24.15 or later within major version 24 and OpenSSL on PATH. Native
+Windows additionally requires local NTFS and an existing trusted Python 3.10+
+interpreter; its private storage boundary is described in [core.md](core.md).
+Install locked dependencies with lifecycle scripts disabled. No account
+credentials are needed for these checks. Run the same checks on the target Linux
+runtime before deployment; Windows results do not replace Linux validation.
 
 ```sh
 cd dot-qq-bridge
-npm ci --ignore-scripts --registry=https://registry.npmjs.org
-node scripts/check.js
-node --test --test-concurrency=1 test/*.test.js
-node --test packages/dot-bridge-transport/test/*.test.js
-node --test packages/dot-bridge-tunnel/test/*.test.js
-cd ../dot-lark-bridge
-npm ci --ignore-scripts --registry=https://registry.npmjs.org
-node scripts/check.js
-node --test --test-concurrency=1 test/*.test.js
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+npm run check
+npm test
+npm run simulate
+npm run simulate:gateway
 ```
 
-The test suite uses synthetic fixtures and loopback listeners. It does not prove a remote callback or provider message has succeeded. Launcher checks and configuration are documented in [the launcher guide](../tools/tunnel-stack/README.md).
+The default suite needs neither Feishu nor core source directories. Its QQ
+owner-runtime test registers only `qqAdapter` with the installed core router.
+Use an isolated source directory to verify this property. Tests use synthetic
+fixtures and loopback listeners; they do not prove real callback or provider
+delivery.
+
+For optional dual-adapter compatibility regression, keep both IM checkouts as
+siblings named `dot-qq-bridge` and `dot-lark-bridge`, install each lockfile, and run
+`node --test --test-concurrency=1 packages/dot-bridge-tunnel/test/*.test.js`
+from QQ. Check that actual-sibling cases run rather than skip. Shared transport
+tests belong to the core source repository and run with its `npm test`.
+The finite-window [development launcher](../tools/tunnel-stack/README.md) still
+uses this two-adapter layout; ordinary persistent single-QQ service does not.
 
 ## Safe continuation
 
@@ -47,10 +67,20 @@ The test suite uses synthetic fixtures and loopback listeners. It does not prove
 - Callback challenge and delivery share the tested transport implementation. HTTPS proxy configuration without a supported managed adapter is blocked before callback DNS/network activity. There is no hidden direct fallback or unverified IP CONNECT route.
 - `callback_transport.ready` describes adapter configuration, not network acceptance. The status always reports `network_checked: false`.
 
-## Remaining acceptance
+## Runtime evidence and remaining acceptance
 
-An earlier private deployment verified current-dot read-only tool calls through Secure MCP Tunnel and discovery of a temporary diagnostic event schema. This is not portable authorization and does not establish a new deployment's connection.
+The authorized 2026-10-14 to 15 deployment evidence is recorded in
+[runtime-acceptance.md](runtime-acceptance.md), including real replies, restarts
+and explicit unverified cases. It is not portable authorization or evidence that
+a new installation is already connected.
 
-The managed-proxy adapter and its final resolution/validation/connection guarantees remain unverified. Real Events subscription creation, authenticated callback delivery, dot wake-up and QQ/Feishu message/reply acceptance remain open. A new local environment needs its own network inspection before deciding whether the existing direct pinned transport is applicable. Do not change proxies, bypass policy, remove TLS verification, or create subscriptions merely to obtain callback details.
+The general managed-proxy adapter and its final destination binding remain
+unverified. Inspect each target environment before selecting standard direct
+transport. Preserve any required proxy, TLS verification and public-address
+checks. A new installation needs its own approved real subscription and
+same-conversation delivery acceptance; discovery is insufficient.
 
-All local runtimes were stopped for this source handoff. Continue with offline checks and a non-network plan before requesting any new credential, ongoing access, pairing or real message-flow authorization.
+This source handoff does not stop an existing authorized service or authorize
+another consumer. Confirm cross-host exclusivity before cutover, preserve the
+database/key/identity and uncertain records, then follow the approved activation
+and rollback procedure.

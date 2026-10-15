@@ -5,56 +5,59 @@ import os from 'node:os';
 import path from 'node:path';
 import { privateMkdtempSync, privateMkdirSync, fixtureChmodSync, fixtureSymlinkSync, cleanupPrivateFixture, beforeFixtureCleanup, assertPrivateFixture } from '@dot-bridge/core/platform/test-fixtures.js';
 import { windowsPrivateDirectory, windowsPrivateMetadata, windowsPrivateDatabase, windowsReadPrivateFile, windowsWritePrivateFile } from '@dot-bridge/core/platform';
-import { readPrivateJson, writePrivateJson, assertPrivateDestination } from '../../dot-lark-bridge/src/private-files.js';
+import { prepareCredentialDestination, readQqCredentials, saveQqCredentials } from '../src/credential-store.js';
 import { acquireModeLock } from '../src/bridge-mode.js';
 import { Store } from '../src/store.js';
 import { config } from './helpers.js';
 
 const native = { skip: process.platform !== 'win32' };
+const candidate = { appId: 'fixture-app', appSecret: 'synthetic-secret', ownerOpenid: 'fixture-owner', ownerEvidence: 'official-qr-response' };
+const scope = { expectedAppId: candidate.appId, profile: 'tencent-sdk' };
 function fixture(t) {
   const directory = privateMkdtempSync(path.join(os.tmpdir(), 'windows-bridge-security-'));
   cleanupPrivateFixture(t, directory);
   return { directory, file: name => path.join(directory, name) };
 }
 test('Windows credential JSON has a verified owner/DACL and atomic exclusive publication', native, t => {
-  const { file } = fixture(t), target = file('credentials.json'), value = { synthetic: true };
-  assert.equal(assertPrivateDestination(target), target); writePrivateJson(target, value);
-  assertPrivateFixture(assert, target, 0o600); assert.deepEqual(readPrivateJson(target), value);
-  assert.throws(() => writePrivateJson(target, { replacement: true })); assert.throws(() => assertPrivateDestination(target));
-  assert.deepEqual(readPrivateJson(target), value);
+  const { directory, file } = fixture(t), target = file('credentials.json');
+  assert.equal(prepareCredentialDestination(directory), target);
+  saveQqCredentials(candidate, { ...scope, directory });
+  const expected = { qqSecret: candidate.appSecret, ownerOpenid: candidate.ownerOpenid };
+  assertPrivateFixture(assert, target, 0o600); assert.deepEqual(readQqCredentials(target, scope), expected);
+  assert.throws(() => saveQqCredentials(candidate, { ...scope, directory })); assert.throws(() => prepareCredentialDestination(directory));
+  assert.deepEqual(readQqCredentials(target, scope), expected);
 });
 test('Windows actual public ACL, insufficient owner access and unsafe parent ACL refuse reads and writes', native, t => {
-  const { directory, file } = fixture(t), target = file('fixture.json'); writePrivateJson(target, { synthetic: true });
-  for (const mode of [0o400, 0o640, 0o644, 0o1600]) { fixtureChmodSync(target, mode); assert.throws(() => readPrivateJson(target)); }
+  const { directory, file } = fixture(t), target = file('credentials.json'); saveQqCredentials(candidate, { ...scope, directory });
+  for (const mode of [0o400, 0o640, 0o644, 0o1600]) { fixtureChmodSync(target, mode); assert.throws(() => readQqCredentials(target, scope)); }
   fixtureChmodSync(target, 0o600);
   for (const mode of [0o500, 0o750, 0o755, 0o1700]) {
     fixtureChmodSync(directory, mode);
-    assert.throws(() => readPrivateJson(target)); assert.throws(() => writePrivateJson(file('new.json'), { synthetic: true }));
-    assert.throws(() => assertPrivateDestination(file('new.json')));
+    assert.throws(() => readQqCredentials(target, scope)); assert.throws(() => windowsWritePrivateFile(file('new.json'), Buffer.from('{}')));
+    assert.throws(() => prepareCredentialDestination(directory));
     assert.equal(fs.existsSync(file('new.json')), false);
   }
-  fixtureChmodSync(directory, 0o700); assert.deepEqual(readPrivateJson(target), { synthetic: true });
+  fixtureChmodSync(directory, 0o700); assert.equal(readQqCredentials(target, scope).ownerOpenid, candidate.ownerOpenid);
 });
 test('Windows final and ancestor junctions, dangling reparse points and hard links are refused', native, t => {
-  const { directory, file } = fixture(t); writePrivateJson(file('fixture.json'), { synthetic: true });
-  fixtureSymlinkSync(file('fixture.json'), file('final-link')); fixtureSymlinkSync(file('missing'), file('dangling-link'));
+  const { directory, file } = fixture(t); saveQqCredentials(candidate, { ...scope, directory });
+  fixtureSymlinkSync(file('credentials.json'), file('final-link')); fixtureSymlinkSync(file('missing'), file('dangling-link'));
   privateMkdirSync(file('child')); fixtureSymlinkSync(directory, file('child/ancestor-link'));
-  for (const target of [file('final-link'), file('dangling-link'), file('child/ancestor-link/fixture.json')]) {
-    assert.throws(() => readPrivateJson(target)); assert.throws(() => assertPrivateDestination(target));
-    assert.throws(() => writePrivateJson(target, { replacement: true }));
+  for (const target of [file('final-link'), file('dangling-link'), file('child/ancestor-link/credentials.json')]) {
+    assert.throws(() => readQqCredentials(target, scope));
+    assert.throws(() => windowsWritePrivateFile(target, Buffer.from('{}')));
   }
-  fs.linkSync(file('fixture.json'), file('hard-link')); assert.throws(() => readPrivateJson(file('fixture.json')));
-  fs.unlinkSync(file('hard-link')); assert.deepEqual(readPrivateJson(file('fixture.json')), { synthetic: true });
+  fs.linkSync(file('credentials.json'), file('hard-link')); assert.throws(() => readQqCredentials(file('credentials.json'), scope));
+  fs.unlinkSync(file('hard-link')); assert.equal(readQqCredentials(file('credentials.json'), scope).ownerOpenid, candidate.ownerOpenid);
 });
-test('Windows invalid JSON and bounded reads/writes expose fixed errors and leave no partial destination', native, t => {
-  const { file } = fixture(t);
-  for (const text of ['synthetic-sensitive-looking-invalid-json', ' '.repeat(16385)]) {
-    fs.writeFileSync(file('bad.json'), text);
-    assert.throws(() => readPrivateJson(file('bad.json')), error => error.message === 'Private file is unavailable or unsafe');
+test('Windows invalid JSON, oversized credentials and mismatched app scope expose only fixed errors', native, t => {
+  const { directory, file } = fixture(t);
+  for (const [index, text] of ['synthetic-sensitive-looking-invalid-json', ' '.repeat(2049), '{}'].entries()) {
+    const target = file(`bad-${index}.json`); windowsWritePrivateFile(target, Buffer.from(text));
+    assert.throws(() => readQqCredentials(target, scope), error => error.message === 'QQ credential file is unavailable, unsafe, or outside approved scope');
   }
-  assert.throws(() => writePrivateJson(file('large.json'), { text: 'x'.repeat(16385) }));
-  assert.throws(() => writePrivateJson(file('undefined.json'), undefined));
-  assert.equal(fs.existsSync(file('large.json')), false); assert.equal(fs.existsSync(file('undefined.json')), false);
+  saveQqCredentials(candidate, { ...scope, directory });
+  assert.throws(() => readQqCredentials(file('credentials.json'), { ...scope, expectedAppId: 'different-app' }));
 });
 test('Windows pinned directory and SQLite handles prevent ancestor/database replacement while active', native, t => {
   assert.throws(() => new Store(config({ authMode: 'tunnel-service', tunnelServiceReadinessOnly: false, dbPath: ':memory:' })));

@@ -1,4 +1,32 @@
-# 本地验证记录
+# 验证记录
+
+## 2026-10-15 独立交付和 Windows 回归修复
+
+基于 `65bad2244eadc89d37f13d10ff065f622959247d` 的修复工作树，
+使用 Windows、本地 NTFS、Node 24.15.0 和已有 OpenSSL 3.5.6。
+从受 Git 管理的源码创建独立副本，不包含飞书或 core 源码目录，也不复制
+私有环境、凭据、数据库或日志；core 仍为锁定的 0.2.1 发行包。
+
+| 检查 | 实际结果 |
+| --- | --- |
+| 独立锁定安装 | `npm ci --omit=dev --ignore-scripts --no-audit --no-fund --offline` 通过，使用已有缓存 |
+| `npm run check` | 81 个 JavaScript 文件、JSON、26 份 Markdown 本地链接与 core 包 hash/integrity 检查通过 |
+| 独立目录 `npm test` | 226 通过、0 失败、0 跳过；实际 QQ 适配器的单渠道聚合用例执行 |
+| `npm run simulate` | 合成 HTTP 闭环通过，一条事件、一条原会话回复和重复抑制 |
+| `npm run simulate:gateway` | 合成 loopback WebSocket 的断线恢复、已提交序号和重复抑制通过 |
+| 原失败文件专项 | 14 通过、0 失败、0 跳过，含 Windows 原生权限、私有凭据和恢复流程 |
+| 容器构建输入安装 | 仅复制 Dockerfile 所需文件后，锁定安装、QQ/core 模块加载和服务 plan 通过；不是 Docker build |
+
+Dockerfile 先复制 `vendor/` 再安装，不再引用已删除的共享目录；数据目录为
+0700。默认测试只使用 QQ 自己的凭据读写器、QQ 适配器和 core；双渠道用例留在
+可选兼容套件中。Windows fixture 创建真实私有 DACL，保留全部运行时权限检查。
+源码交接、代理、Tunnel 和开发启动器文档已按 [core 边界](core.md) 更新。
+
+本轮未执行 Docker 构建/容器运行、更新后的 Linux 回归、新的真实消息验收或
+服务切换。此前真实部署证据与合并批次、自然续订及客户端视觉效果的限制仍见
+[runtime-acceptance.md](runtime-acceptance.md)，不能用本轮离线结果覆盖。
+
+## 2026-10-02 历史本地验证
 
 日期：2026-10-02。环境：Windows RMB16 工作区、Node `v24.15.0`。原仓库基于 `6a21cde`（只含现有 MIT LICENSE），新增代码没有覆盖已有实现；工作分支 `feat/qq-mcp-events-v1`。
 

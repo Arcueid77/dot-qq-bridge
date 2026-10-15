@@ -1,6 +1,12 @@
 # 持续云端托管与运行
 
-本次未构建容器、选择服务商、购买域名、公开端点或部署。Docker 在开发环境中不可用，Dockerfile 是待授权构建验证的模板。实际运行环境须使用 Node 24.15+ 的 Linux 常驻进程或容器，不依赖 RMB16 持续在线。
+正式单 QQ Secure MCP Tunnel 拓扑与服务入口见 [core.md](core.md)、
+[tunnel-live.md](tunnel-live.md)。只需本仓库和 vendored core 包，不需要飞书后端。
+已有授权部署的证据和未验收项见 [runtime-acceptance.md](runtime-acceptance.md)。
+下文保留早期 OAuth/Webhook 容器部署路径，不能用来判断当前实例状态。
+Dockerfile 将 `vendor/` 复制后再执行锁定安装，不再复制旧共享源码目录；
+容器构建和运行须分别记录结果。实际运行环境须使用 Node 24.15–24.x 的
+Linux 常驻进程或容器，本地电脑只是部署入口。
 
 用户目标是 dot 管理的云环境，不要求本人自备服务器。能否原样运行取决于该环境是否提供上述 Node 运行时、持久卷、常驻后台进程、经批准的 MCP 路由/认证和必要出网；这些能力尚未在 dot 云电脑验证。现有实现不能直接作为 Workers/D1 请求 handler 上传：需要 HTTP 入口适配、替换本地 SQLite/WAL 事务与 lease、使用可靠队列消费者替换进程计时器，并适配 crypto/受控出站 HTTPS/WSS 且保留 SSRF 防护。OAuth 发行方或有明确主体保证的平台认证仍是前提。本轮没有实施这类迁移或发布；共享云端探针和服务/数据库/认证授权由主线程处理，具体交接见 [handoff.md](handoff.md)。
 

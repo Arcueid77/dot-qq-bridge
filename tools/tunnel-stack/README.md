@@ -1,5 +1,9 @@
 # Portable QQ / Lark tunnel stack
 
+This is the optional finite-window two-adapter development stack. Persistent
+single-QQ deployment uses `scripts/qq-service.js` and
+`scripts/run-tunnel-router.js`; see [core deployment](../../docs/core.md).
+
 These launchers package the existing private supervisor with explicit external
 runtime locations. Copying or cloning the projects does **not** migrate any
 credential, provider binding, message database, tunnel binary, logs or state.
@@ -20,14 +24,14 @@ Both require existing Python 3.10+ and Node 24.15+ within major 24. Windows uses
 supervisor's existing interpreter for the Node private-file helper; standalone
 bridge tools can select that same trusted interpreter with `DOT_BRIDGE_PYTHON`.
 No interpreter, WSL distribution, binary, certificate or software is installed by
-these launchers. Details: [Windows platform boundary](../../packages/dot-bridge-platform/README.md).
+these launchers. Details: [Windows platform boundary](../../docs/core.md).
 
 ```text
 any-parent-directory/
   dot-qq-bridge/
     tools/tunnel-stack/live-stack.py
     tools/tunnel-stack/readiness-native-stack.py
-    packages/dot-bridge-transport/
+    vendor/dot-bridge-core-0.2.1.tgz
     packages/dot-bridge-tunnel/
   dot-lark-bridge/
 ```
