@@ -8,7 +8,7 @@ Users need [Deployment](deployment.en.md), [Configuration](configuration.en.md) 
 
 | Component | Location and responsibility |
 | --- | --- |
-| Shared implementation | [dot-bridge-core](https://github.com/AvaloNero/dot-bridge-core): callback transport, private files/platform locks and registered-channel router |
+| Shared implementation | [dot-bridge-core](https://github.com/Arcueid77/dot-bridge-core): callback transport, private files/platform locks and registered-channel router |
 | IM adapter | `src/tunnel-adapter.js`: channel tools, events and protocol |
 | Provider and business logic | This repository's `src/`: SDK/Gateway, identities, durable queues, restricted replies and interaction |
 | Single-channel host | `scripts/run-tunnel-router.js` registers only this adapter |

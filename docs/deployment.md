@@ -11,7 +11,7 @@
 Node 必须 >=24.15 且 <25，使用内置 `node:sqlite`；从官方来源按架构安装，检查 OpenSSL。Windows 另需 Python 3.10+ 和本地 NTFS。macOS 等其他平台的私人 Tunnel 运行尚不受支持；静态托管、休眠实例和短时函数不适用。Docker 模板需独立构建/运行验收。
 
 ```sh
-git clone https://github.com/AvaloNero/dot-qq-bridge.git
+git clone https://github.com/Arcueid77/dot-qq-bridge.git
 cd dot-qq-bridge
 git fetch origin
 git checkout --detach REVIEWED_COMMIT_SHA

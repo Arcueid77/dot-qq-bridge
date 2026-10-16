@@ -8,7 +8,7 @@
 
 | 部分 | 位置与职责 |
 | --- | --- |
-| 共享实现 | [dot-bridge-core](https://github.com/AvaloNero/dot-bridge-core)：callback 传输、私有文件/平台锁、注册渠道聚合器 |
+| 共享实现 | [dot-bridge-core](https://github.com/Arcueid77/dot-bridge-core)：callback 传输、私有文件/平台锁、注册渠道聚合器 |
 | 本 IM 适配器 | `src/tunnel-adapter.js`：本渠道工具、事件及协议 |
 | 平台与业务 | 本仓库 `src/`：SDK/网关、身份校验、持久队列、受限回复、体验 |
 | 单渠道入口 | `scripts/run-tunnel-router.js` 只注册本仓库适配器 |

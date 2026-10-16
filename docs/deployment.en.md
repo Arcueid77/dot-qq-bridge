@@ -11,7 +11,7 @@ Use a continuously running Linux VPS with local persistent storage, or Windows w
 Node must be >=24.15 and <25, using built-in `node:sqlite`. Install an architecture-compatible official build and check OpenSSL. Windows also requires Python 3.10+ and local NTFS. Private Tunnel operation on macOS and other platforms is not supported. Static hosting, sleeping instances and short-lived functions do not meet the runtime requirements. Docker builds and operation need separate acceptance.
 
 ```sh
-git clone https://github.com/AvaloNero/dot-qq-bridge.git
+git clone https://github.com/Arcueid77/dot-qq-bridge.git
 cd dot-qq-bridge
 git fetch origin
 git checkout --detach REVIEWED_COMMIT_SHA
