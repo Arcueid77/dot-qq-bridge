@@ -47,6 +47,7 @@ export class Store {
       for (const table of ['subscriptions', 'messages']) {
         if (!this.all(`PRAGMA table_info(${table})`).some(column => column.name === 'generation')) this.db.exec(`ALTER TABLE ${table} ADD COLUMN generation INTEGER NOT NULL DEFAULT 1`);
       }
+      if (!this.all('PRAGMA table_info(messages)').some(column => column.name === 'attachments')) this.db.exec('ALTER TABLE messages ADD COLUMN attachments TEXT');
       const bridgeMode = config.bridgeMode || 'tunnel';
       const storedMode = this.get('SELECT value FROM metadata WHERE key=?', 'bridge_mode');
       if (storedMode && storedMode.value !== bridgeMode) throw new Error('Stored bridge mode differs; explicit migration is required');
@@ -166,9 +167,10 @@ export class Store {
       this.capacity();
       this.rate('inbound', this.config.inboundPerMinute, now);
       const eventId = `evt_${hash(`${this.config.qqAppId}:${message.id}`)}`;
-      this.run(`INSERT INTO messages(id,source_event_id,event_id,principal,owner,subscription_id,occurred_at,expires,received,text,generation)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)`, message.id, message.sourceEventId, eventId, this.config.principal,
-        message.owner, subscription.id, message.timestamp, message.expires, now, this.vault.seal(message.text, `message:${message.id}`), subscription.generation ?? (this.config.bridgeMode === 'sites' ? 1 : undefined));
+      this.run(`INSERT INTO messages(id,source_event_id,event_id,principal,owner,subscription_id,occurred_at,expires,received,text,generation,attachments)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, message.id, message.sourceEventId, eventId, this.config.principal,
+        message.owner, subscription.id, message.timestamp, message.expires, now, this.vault.seal(message.text, `message:${message.id}`), subscription.generation ?? (this.config.bridgeMode === 'sites' ? 1 : undefined),
+        message.attachments?.length ? this.vault.seal(message.attachments, `attachments:${message.id}`) : null);
       this.run('INSERT INTO jobs(id,kind,message_id,subscription_id,next_at) VALUES (?,?,?,?,?)', `event:${eventId}`, 'event', message.id, subscription.id, now);
       this.run('INSERT INTO replays VALUES (?,?)', replayId, now + 2 * this.config.signatureSkewSeconds * 1000);
       // Optional code-injected admission budget shares this exact transaction.
@@ -179,7 +181,8 @@ export class Store {
   }
   message(id) {
     const row = this.get('SELECT * FROM messages WHERE id=?', id);
-    return row ? { ...row, text: row.text ? this.vault.open(row.text, `message:${id}`) : null } : undefined;
+    return row ? { ...row, text: row.text ? this.vault.open(row.text, `message:${id}`) : null,
+      attachments: row.attachments ? this.vault.open(row.attachments, `attachments:${id}`) : [] } : undefined;
   }
   authorizeMessage(id, principal, now) {
     const message = this.message(id), subscription = message && this.subscription(message.subscription_id);
@@ -241,7 +244,7 @@ export class Store {
   prune(now) {
     this.tx(() => {
       const cutoff = now - this.config.textRetentionMs;
-      this.run('UPDATE messages SET text=NULL WHERE received<? AND expires<?', cutoff, now);
+      this.run('UPDATE messages SET text=NULL,attachments=NULL WHERE received<? AND expires<?', cutoff, now);
       this.run('UPDATE replies SET text=NULL WHERE created<?', cutoff);
       // Tombstones intentionally survive text deletion to preserve durable deduplication.
       this.run('DELETE FROM replays WHERE expires<?', now);

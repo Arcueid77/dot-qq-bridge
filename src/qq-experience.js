@@ -121,10 +121,13 @@ export class QqExperience {
     let budget = 30000; const messages = []; let truncated = rows.length > limit;
     for (const row of rows.slice(0, limit)) {
       const m = this.store.message(row.id), reply = this.store.replyStatus(m.id).status === 'sent' ? this.store.replyText(m.id) : null;
-      const size = (m.text?.length ?? 0) + (reply?.length ?? 0);
+      const transcript = m.attachments[0]?.transcript;
+      const transcriptText = transcript ? `${m.text}\n[QQ 语音参考转写] ${transcript}` : m.text;
+      const text = transcriptText?.length > 2000 ? transcriptText.slice(0,1999) + '…' : transcriptText;
+      const size = (text?.length ?? 0) + (reply?.length ?? 0);
       if (size > budget) { truncated = true; break; }
       budget -= size;
-      messages.push({ message_id: m.id, text: m.text, received_at: new Date(m.received).toISOString(), reply_text: reply });
+      messages.push({ message_id: m.id, text, received_at: new Date(m.received).toISOString(), reply_text: reply });
     }
     return { message_id: id, messages: messages.reverse(), truncated };
   }

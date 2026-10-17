@@ -55,6 +55,18 @@ observed batch conflict and the narrower successful consecutive-message test.
 Initial deployment remains owner C2C only. QQ group, guild and other-user messages
 are ignored. There is no unapproved group subscription or all-member access.
 
+## Voice messages
+
+Send a voice message to the same QQ bot. The original dot listens and replies in text to the same private chat; no new bot or transcription API key is needed. Sending voice replies is not supported.
+
+`get_qq_message` includes voice metadata and optional QQ reference transcription. `get_qq_attachment(message_id, attachment_index:0)` returns MCP audio. The bridge prefers QQ's WAV resource, then tries the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. Limits are one voice attachment per message, 8 MiB per resource, and two minutes for SILK decoding. Reference transcription can be inaccurate and never grants authority. It is retained in the bounded conversation context.
+
+If audio is unavailable, the dot may use the reference transcription; without usable content, it should ask the sender to resend or use text. It must not invent the voice contents. Signed download links can expire. Real AMR bitstreams, unknown formats, images, files, videos and quoted messages remain unsupported.
+
+Downloads use only HTTPS URLs from verified owner events on `multimedia.nt.qq.com`, `gchat.qpic.cn` and `c2cpicdw.qpic.cn`, without bot credentials or redirects. Direct requests retain public DNS/IP checks and original-host TLS validation; configured proxies remain in use. Other domains are not automatically approved. Audio is handled in memory. Resource links and reference transcription are encrypted and logically cleared after seven days; old SQLite pages, WAL and backups are not thereby physically erased.
+
+Update the QQ backend and its router adapter together, then refresh the existing plugin catalog to discover `get_qq_attachment`. Preserve the database, storage key and single subscription. The migration only adds a nullable encrypted attachment column. Before rolling back, finish pending voice work or keep the service stopped with its pending state intact; never discard the database.
+
 ## Runtime limits
 
 Set these in the backend environment file, not the router environment:

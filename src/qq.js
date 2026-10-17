@@ -1,4 +1,5 @@
 import { BridgeError, plainText, string, timestamp } from './common.js';
+import { incomingVoice } from './qq-audio.js';
 
 export function incomingMessage(payload, config, now) {
   if (!config.ownerOpenid || !config.principal || config.authMode === 'deny') throw new BridgeError('Owner binding is not configured', { status: 503 });
@@ -7,14 +8,16 @@ export function incomingMessage(payload, config, now) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new BridgeError('Invalid QQ message');
   if (data.author?.user_openid !== config.ownerOpenid) throw new BridgeError('QQ identity is not allowlisted', { status: 403 });
   if (data.author.bot === true || (data.message_type !== undefined && data.message_type !== 0) ||
-      (data.attachments !== undefined && (!Array.isArray(data.attachments) || data.attachments.length)) ||
       data.ark_data || (data.msg_elements !== undefined && (!Array.isArray(data.msg_elements) || data.msg_elements.length)) ||
       data.message_reference || data.group_openid || data.guild_id || data.channel_id) return null;
-  string(data.id, 256); string(payload.id, 256); plainText(data.content);
+  const attachments = incomingVoice(data.attachments);
+  if (attachments === null) return null;
+  const text = attachments.length && (data.content === undefined || (typeof data.content === 'string' && !data.content.trim())) ? '[语音]' : data.content;
+  string(data.id, 256); string(payload.id, 256); plainText(text);
   const occurred = timestamp(data.timestamp);
   if (occurred > now + 30000 || occurred + config.replyTtlMs <= now) throw new BridgeError('QQ message is too old or in the future');
   return { id: data.id, sourceEventId: payload.id, owner: data.author.user_openid,
-    text: data.content, timestamp: data.timestamp, expires: occurred + config.replyTtlMs };
+    text, ...(attachments.length ? { attachments } : {}), timestamp: data.timestamp, expires: occurred + config.replyTtlMs };
 }
 
 // One token cache is shared by passive replies and optional Gateway discovery.

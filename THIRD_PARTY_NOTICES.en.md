@@ -2,6 +2,8 @@
 
 [简体中文](THIRD_PARTY_NOTICES.md) | [English](THIRD_PARTY_NOTICES.en.md) | [Home](README.en.md)
 
+- [`silk-wasm@3.7.1`](https://github.com/idranme/silk-wasm) is a pinned local voice-decoding dependency with MIT package metadata and its bundled license. It calls no transcription service. QQ voice fields follow Tencent's [attachment handling](https://github.com/tencent-connect/openclaw-qqbot/blob/main/src/middleware/attachment.ts) and [audio utilities](https://github.com/tencent-connect/qqbot-nodejs/blob/main/src/protocol/utils/audio.ts); their bot runtime is not imported.
+
 The project's [MIT LICENSE](LICENSE) is unchanged and does not replace the licenses of dependencies or runtime components.
 
 - `ws@8.21.0` is a pinned MIT runtime dependency. Its copyright and license are retained in [licenses/ws-MIT.txt](licenses/ws-MIT.txt); `package-lock.json` fixes version and integrity. Optional native peers are not installed.

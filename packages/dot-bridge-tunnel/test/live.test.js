@@ -164,7 +164,7 @@ test('strict schemas reject arbitrary destinations, identities, tools, replay an
 test('catalog conflicts, pagination, schema changes and post-discovery mode drift fail before mutations',async t=>{
   const f=await running(t);assert.equal((await f.post('tools/list')).status,200);
   const mutations=[(v,b)=>{if(b.method==='tools/list')v.result.tools.push({name:'arbitrary_write'});},(v,b)=>{if(b.method==='tools/list')v.result.tools[0].inputSchema.additionalProperties=true;},
-    (v,b)=>{if(b.method==='tools/list')v.result.tools[1].annotations.readOnlyHint=true;},(v,b)=>{if(b.method==='events/list')v.result.events[0].name='lark.message.created';},
+    (v,b)=>{if(b.method==='tools/list')v.result.tools.find(tool=>tool.name==='reply_to_qq').annotations.readOnlyHint=true;},(v,b)=>{if(b.method==='events/list')v.result.events[0].name='lark.message.created';},
     (v,b)=>{if(b.method==='events/list')v.result.events[0].payloadSchema.additionalProperties=true;},...['',false,0,'next'].map(cursor=>(v,b)=>{if(b.method==='tools/list')v.result.nextCursor=cursor;})];
   for(const change of mutations){f.qq.state.transform=(v,b)=>{change(v,b);return v;};assert.equal((await f.tool('reply_to_qq',{message_id:'same-id',text:'hello'})).status,502);assert.equal(f.qq.state.replyCalls,0);}
   f.qq.state.transform=v=>v;f.qq.state.live=false;assert.equal((await f.post('events/subscribe',event('qq'))).status,502);assert.equal(f.qq.state.subscriptions,0);

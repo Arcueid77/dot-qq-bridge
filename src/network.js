@@ -97,6 +97,13 @@ export function makePublicRequester(options = {}) {
   };
   send.callbackPreflight = () => callbackTransport.preflight?.();
   send.callbackTransportStatus = () => callbackTransportStatus(send);
+  // Keep normal JSON/callback limits small. Resource reads reuse the same
+  // transport/proxy policy with a separate bounded response budget, lazily.
+  let resourceSend;
+  send.resourceRequester = (...args) => {
+    resourceSend ??= makePublicRequester({ ...options, maxBytes: 8 * 1024 * 1024, callbackMaxBytes, timeoutMs: 6000, providerTimeoutMs: 6000 });
+    return resourceSend(...args);
+  };
   return send;
 }
 

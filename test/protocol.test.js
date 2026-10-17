@@ -31,9 +31,10 @@ test('MCP 2.0 discovery, metadata, tool annotations, complete results and unsupp
   assert.deepEqual(discover.body.result.capabilities.events, {});
   assert.equal(discover.body.result.cacheScope, 'private');
   const tools = (await f.postMcp('tools/list')).body.result.tools;
-  assert.deepEqual(tools.map(tool => tool.name), ['get_qq_message', 'reply_to_qq', 'begin_qq_reply', 'append_qq_reply', 'get_qq_context', 'check_bridge_setup']);
-  assert.equal(tools[1].annotations.readOnlyHint, false); assert.equal(tools[1].annotations.idempotentHint, true);
-  assert.equal(tools[1].inputSchema.additionalProperties, false);
+  assert.deepEqual(tools.map(tool => tool.name), ['get_qq_message', 'get_qq_attachment', 'reply_to_qq', 'begin_qq_reply', 'append_qq_reply', 'get_qq_context', 'check_bridge_setup']);
+  const replyTool=tools.find(tool=>tool.name==='reply_to_qq');
+  assert.equal(replyTool.annotations.readOnlyHint, false); assert.equal(replyTool.annotations.idempotentHint, true);
+  assert.equal(replyTool.inputSchema.additionalProperties, false);
   const events = (await f.postMcp('events/list')).body.result.events;
   assert.deepEqual(events[0].delivery, ['webhook']); assert.equal(events[0].name, 'qq.message.created');
   assert.equal((await f.postMcp('initialize')).body.error.code, -32601);

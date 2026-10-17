@@ -4,6 +4,8 @@
 
 本项目的 [MIT LICENSE](LICENSE) 保持不变；该许可不替代第三方依赖或运行环境各自的许可。
 
+- [`silk-wasm@3.7.1`](https://github.com/idranme/silk-wasm) 为固定版本的语音解码依赖，包 metadata 为 MIT，许可证随依赖提供。语音仅在本机解码，不调用转写服务。QQ 语音字段参考腾讯 [附件处理](https://github.com/tencent-connect/openclaw-qqbot/blob/main/src/middleware/attachment.ts)与 [音频协议工具](https://github.com/tencent-connect/qqbot-nodejs/blob/main/src/protocol/utils/audio.ts)；未引入其机器人运行时。
+
 - `ws@8.21.0` 是固定版本的 MIT 运行依赖；版权与许可证见 [licenses/ws-MIT.txt](licenses/ws-MIT.txt)。版本和包 integrity 在 `package-lock.json` 中保存，不安装可选原生 peer。
 - `@tencent-connect/qqbot-connector@1.2.0` 通过公开 `startQrConnect` API 集成，固定包 metadata 为 `UNLICENSED`，未附独立 LICENSE。腾讯 MIT 包装层不使该依赖自动获得 MIT 许可；本源码树不复制其内部实现。分发或商业使用需单独核对授权范围，不能用本项目许可覆盖。实际扫码及凭据保存见[部署指南](docs/deployment.md)。
 - 腾讯 Connect 的 [openclaw-qqbot](https://github.com/tencent-connect/openclaw-qqbot) 固定提交 `a730701d36aa7a070f98d4cba0f340f91f15e5f5` 仅供协议审查，未导入其运行时。其 [MIT LICENSE](https://github.com/tencent-connect/openclaw-qqbot/blob/a730701d36aa7a070f98d4cba0f340f91f15e5f5/LICENSE) 署名 sliverp / Tencent Connect。

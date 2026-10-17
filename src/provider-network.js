@@ -3,7 +3,8 @@ import { BridgeError } from './common.js';
 
 // Only trusted platform call sites opt in. Never use this for MCP callbacks,
 // OAuth discovery/JWKS, operator-provided URLs, or arbitrary external targets.
-export const PROVIDER_HOSTS = Object.freeze(['api.bot.qq.com', 'api.sgroup.qq.com', 'sandbox.api.sgroup.qq.com', 'bots.qq.com']);
+export const QQ_MEDIA_HOSTS = Object.freeze(['multimedia.nt.qq.com', 'gchat.qpic.cn', 'c2cpicdw.qpic.cn']);
+export const PROVIDER_HOSTS = Object.freeze(['api.bot.qq.com', 'api.sgroup.qq.com', 'sandbox.api.sgroup.qq.com', 'bots.qq.com', ...QQ_MEDIA_HOSTS]);
 const failure = (reason = 'connection_refused') => new BridgeError('Provider connection failed', { code: -32015, data: { reason }, retryable: true });
 export function providerUrl(raw, hosts) {
   let url; try { url = new URL(raw); } catch { throw new BridgeError('Invalid provider destination'); }

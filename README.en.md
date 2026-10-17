@@ -11,7 +11,8 @@ Clone only this repository. A pinned `@dot-bridge/core` distribution is included
 - Owner C2C text, retained conversation context, Markdown and answers up to 30000 characters.
 - A native input notification when processing starts, plus native updates to one reply.
 - Durable queues, deduplication and restart recovery; uncertain sends are never automatically resent.
-- QQ groups, guilds, other members, inbound attachments and quotations are outside the current scope.
+- Owner C2C voice is passed to the original dot for understanding and a text reply. QQ WAV resources and local SILK decoding need no transcription API.
+- QQ groups, guilds, other members, images, files, videos, quotations and voice replies are not supported.
 
 ## Start here
 
