@@ -73,6 +73,8 @@ For hosts that omit native MCP audio, read `extracted_text` from `get_qq_attachm
 
 Local recognition is limited to 8 MiB, 120 seconds of audio, 28 seconds of processing and 12000 output characters. Busy, timed-out or unclear audio requires a shorter recording or text. Treat transcription as an imperfect reference. Refresh the existing plugin catalog after upgrading; do not create another subscription.
 
+Compile core's included `audio/no-core-dump.c` as a shared library in the protected runtime directory and set its absolute path in `DOT_BRIDGE_AUDIO_GUARD`. It makes audio subprocesses nondumpable, including on systems with piped crash collectors. Local recognition refuses to run without this protection.
+
 Set these in the backend environment file, not the router environment:
 
 | Setting | Default | Meaning |

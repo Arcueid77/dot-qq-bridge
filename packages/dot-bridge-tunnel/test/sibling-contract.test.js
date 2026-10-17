@@ -46,10 +46,11 @@ test('synthetic compatibility with actual sibling QQ and Lark readiness contract
   assert.equal(larkResult.status, 200); assert.equal(larkResult.body.result.structuredContent.authenticated_mcp_reachable, true);
   assert.equal(providerRequests, 0);
   assert.equal(await qq.bridge.tick(), false); assert.equal(await lark.bridge.tick(), false);
-  // Verify copied strict protocol implementation remains byte-identical to both originals.
+  // Compare the strict protocol source after Git's platform line-ending conversion.
+  const sourceText = file => fs.readFileSync(file, 'utf8').replaceAll('\r\n', '\n');
   const extract = source => source.slice(source.indexOf('function decodedName('), source.indexOf('\n\nexport function createApp'));
-  const originalQq = fs.readFileSync(qqSource, 'utf8'), originalLark = fs.readFileSync(larkSource, 'utf8');
-  const local = fs.readFileSync(new URL(import.meta.resolve('@dot-bridge/core/router/protocol.js')), 'utf8');
+  const originalQq = sourceText(qqSource), originalLark = sourceText(larkSource);
+  const local = sourceText(new URL(import.meta.resolve('@dot-bridge/core/router/protocol.js')));
   assert.equal(local.slice(local.indexOf('function decodedName(')).trim(), extract(originalQq).trim());
   assert.equal(extract(originalQq), extract(originalLark));
 });
