@@ -86,8 +86,10 @@ test('voice persists encrypted, emits one event, exposes bounded native audio, a
   assert.match((await tool(f,'get_qq_context')).body.result.structuredContent.messages[0].text,/这是一条合成语音/);
   const response=await listen(f);assert.equal(response.status,200);
   const result=response.body.result;assert.deepEqual(Buffer.from(result.content[1].data,'base64'),audio);
+  assert.equal(result.structuredContent.extracted_text,'这是一条合成语音');
   const projected=projectToolResult({name:'get_qq_attachment',arguments:{message_id:id,attachment_index:0}},result,true);
   assert.equal(projected[RICH_TOOL_RESULT],true);assert.equal(projected.content[1].type,'audio');
+  assert.equal(projected.value.extracted_text,'这是一条合成语音');
   assert.equal((await f.reply(id,'已听到你的语音')).status,200);await f.app.bridge.tick();await f.reply(id,'已听到你的语音');await f.app.bridge.tick();
   assert.equal(f.sends.length,1);assert.ok(f.sends[0].url.includes(encodeURIComponent(f.config.ownerOpenid)));assert.equal(f.sends[0].body.msg_id,id);
 });

@@ -69,6 +69,10 @@ Update the QQ backend and its router adapter together, then refresh the existing
 
 ## Runtime limits
 
+For hosts that omit native MCP audio, read `extracted_text` from `get_qq_attachment`. QQ reference transcription is preferred. Linux can fall back to local Whisper: set `DOT_BRIDGE_AUDIO_TRANSCRIPTION=local-whisper`, `DOT_BRIDGE_WHISPER_BINARY` and `DOT_BRIDGE_WHISPER_MODEL` in the backend environment. The latter two are absolute paths to a reviewed root-owned whisper-cli and multilingual model, neither writable by the service user. Install `/usr/bin/ffmpeg`, `prlimit`, `flock`; both backends share their existing private `BRIDGE_LOCK_DIRECTORY` to serialize recognition. Audio stays in memory pipes on the VPS; no transcription API key is used. The original dot still replies.
+
+Local recognition is limited to 8 MiB, 120 seconds of audio, 28 seconds of processing and 12000 output characters. Busy, timed-out or unclear audio requires a shorter recording or text. Treat transcription as an imperfect reference. Refresh the existing plugin catalog after upgrading; do not create another subscription.
+
 Set these in the backend environment file, not the router environment:
 
 | Setting | Default | Meaning |

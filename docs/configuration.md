@@ -30,6 +30,14 @@
 
 升级时，QQ 后端和加载 QQ 适配器的路由器需一起更新，再刷新原插件的工具目录，确认出现 `get_qq_attachment`。保留现有数据库、存储密钥和唯一订阅，不要再开一套消费者。数据库只增加可空的加密附件字段；回退前先处理完待办语音，或保持服务停止并保留待办状态，不能删库重来。
 
+### 让不支持音频输入的 dot 读懂语音
+
+有些 ChatGPT 工具环境会省略 MCP 音频。此时 dot 要读取 `get_qq_attachment` 返回的 `extracted_text`，不能仅因为看不到音频就说无法读取。桥优先提供 QQ 的参考转写；没有转写时，可在 Linux VPS 启用本地 Whisper。回答仍由原 dot 生成。
+
+在后端环境文件设置 `DOT_BRIDGE_AUDIO_TRANSCRIPTION=local-whisper`、`DOT_BRIDGE_WHISPER_BINARY` 和 `DOT_BRIDGE_WHISPER_MODEL`。后两项为已安装、root 所有且服务用户不可修改的 whisper-cli 和多语言模型绝对路径；依赖 `/usr/bin/ffmpeg`、`prlimit`、`flock`。两个后端复用原 `BRIDGE_LOCK_DIRECTORY`，同一时刻只转写一条。音频只经过内存管道，不上传到外部转写服务，也不需要 API key。
+
+本地转写限 8 MiB、两分钟音频和 28 秒处理时间，返回最多 12000 字符。繁忙、超时或听不清时请重发较短语音或文字，不把参考转写当作准确原文。升级后刷新现有插件工具目录，不新建订阅。
+
 ## 运行限制
 
 以下字段放在后端环境文件中，不放在聚合器环境中：

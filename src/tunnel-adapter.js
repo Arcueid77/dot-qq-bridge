@@ -48,7 +48,7 @@ export function projectToolResult(call,result,live) {
       return {message_id:call.arguments.message_id,messages,truncated:value.truncated};
     }
     if (call.name === 'get_qq_attachment') {
-      object(value,['message_id','attachment_index','type','mime_type','size'],['message_id','attachment_index','type','mime_type','size']);
+      object(value,['message_id','attachment_index','type','mime_type','size','extracted_text','extraction_status'],['message_id','attachment_index','type','mime_type','size']);
       if(value.message_id!==call.arguments.message_id || value.attachment_index!==0 || value.attachment_index!==call.arguments.attachment_index || value.type!=='audio' ||
         !QQ_AUDIO_MIMES.includes(value.mime_type) || !Number.isSafeInteger(value.size) || value.size<1 || value.size>QQ_AUDIO_BYTES ||
         !Array.isArray(result.content) || result.content.length<1 || result.content.length>2)throw unavailable();
@@ -58,7 +58,10 @@ export function projectToolResult(call,result,live) {
       const bytes=Buffer.from(block.data,'base64');
       try { if(bytes.length!==value.size || bytes.toString('base64')!==block.data || audioMime(bytes)!==value.mime_type)throw unavailable(); }
       finally { bytes.fill(0); }
-      const projected={message_id:value.message_id,attachment_index:0,type:'audio',mime_type:value.mime_type,size:value.size};
+      if(value.extracted_text!==undefined)boundedString(value.extracted_text,12000,{multiline:true});
+      if(value.extraction_status!==undefined&&!['complete','unsupported'].includes(value.extraction_status))throw unavailable();
+      if((value.extraction_status==='complete')!==(typeof value.extracted_text==='string'))throw unavailable();
+      const projected={message_id:value.message_id,attachment_index:0,type:'audio',mime_type:value.mime_type,size:value.size,...(value.extraction_status?{extraction_status:value.extraction_status}:{}),...(value.extracted_text?{extracted_text:value.extracted_text}:{})};
       return {[RICH_TOOL_RESULT]:true,value:projected,content:[{type:'text',text:JSON.stringify(projected)},{type:'audio',mimeType:block.mimeType,data:block.data}]};
     }
     if (call.name === 'get_qq_message') {
