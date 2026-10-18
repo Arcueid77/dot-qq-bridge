@@ -1,6 +1,6 @@
 {
   "name": "dot-qq-bridge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "A single-owner QQ C2C to current-dot MCP Events bridge",
@@ -24,5 +24,25 @@
     "@tencent-connect/qqbot-connector": "1.2.0",
     "silk-wasm": "3.7.1",
     "ws": "8.21.0"
-  }
+  },
+  "exports": {
+    "./adapter": "./src/tunnel-adapter.js",
+    "./config": "./src/config.js",
+    "./server": "./src/server.js",
+    "./runtime/live": "./scripts/qq-service.js",
+    "./runtime/readiness": "./scripts/run-tunnel-readiness.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "scripts/",
+    "vendor/",
+    "docs/",
+    "plugin/",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_NOTICES.en.md"
+  ]
 }

@@ -66,3 +66,7 @@ gh pr merge PR_NUMBER --rebase
 ```
 
 若只需保留一个整理后的功能提交，可选择 **Squash and merge**。不要选择 Create a merge commit。合并前需要解决冲突并按仓库规则完成检查；已发布主干的历史重写须单独明确授权，并保留回滚引用及精确旧 SHA 保护。
+
+## 供总仓库使用的包接口
+
+发布构建包提供 `adapter`、`config`、`server`、`runtime/live` 和 `runtime/readiness` 子路径。总仓库按固定版本安装这些构建包；平台实现仍在本仓库维护。包内只包含运行代码、说明和固定 core 构建包，不包含本机配置、数据库或测试数据。当前包用于版本化源码发行，尚未发布到 npm registry。

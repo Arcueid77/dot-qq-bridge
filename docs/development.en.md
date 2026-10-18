@@ -66,3 +66,7 @@ gh pr merge PR_NUMBER --rebase
 ```
 
 Use **Squash and merge** if one consolidated feature commit is preferable. Avoid Create a merge commit. Resolve conflicts and satisfy repository checks first. Rewriting published main history requires separate explicit authorization, a rollback reference and an exact old-SHA guard.
+
+## Package interface for the distribution repository
+
+Release artifacts expose the `adapter`, `config`, `server`, `runtime/live` and `runtime/readiness` subpaths. The distribution installs pinned artifacts; provider implementation remains owned here. Packages contain runtime code, documentation and the pinned core artifact, excluding local configuration, databases and test data. These are versioned source-distribution packages, not yet published to the npm registry.
