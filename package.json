@@ -1,6 +1,6 @@
 {
   "name": "dot-qq-bridge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "A single-owner QQ C2C to current-dot MCP Events bridge",
@@ -20,7 +20,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@dot-bridge/core": "file:vendor/dot-bridge-core-0.3.0.tgz",
+    "@dot-bridge/core": "file:vendor/dot-bridge-core-0.4.0.tgz",
     "@tencent-connect/qqbot-connector": "1.2.0",
     "silk-wasm": "3.7.1",
     "ws": "8.21.0"
