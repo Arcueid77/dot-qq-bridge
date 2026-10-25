@@ -13,7 +13,7 @@ import { createApp } from '../src/server.js';
 import { saveQqCredentials } from '../src/credential-store.js';
 import { qqAdapter } from '../src/tunnel-adapter.js';
 
-test('actual standalone QQ backend and core router discover voice and preserve large MCP audio without sibling source', async t => {
+test('actual standalone QQ backend and core router preserve large audio reads and media replies without sibling source', async t => {
   const dir=privateMkdtempSync(path.join(os.tmpdir(),'qq-voice-router-'));cleanupPrivateFixture(t,dir);
   const key=(name,n)=>{const file=path.join(dir,name);fs.writeFileSync(file,Buffer.alloc(32,n).toString('base64url'),{mode:0o600});return file;};
   const backendKey=key('backend',61),ingressKey=key('ingress',62),storageKey=key('storage',63);
@@ -27,10 +27,13 @@ test('actual standalone QQ backend and core router discover voice and preserve l
   const audio=Buffer.alloc(96044);audio.write('RIFF',0);audio.writeUInt32LE(audio.length-8,4);audio.write('WAVEfmt ',8);
   audio.writeUInt32LE(16,16);audio.writeUInt16LE(1,20);audio.writeUInt16LE(1,22);audio.writeUInt32LE(24000,24);
   audio.writeUInt32LE(48000,28);audio.writeUInt16LE(2,32);audio.writeUInt16LE(16,34);audio.write('data',36);audio.writeUInt32LE(96000,40);
-  const delivered=[],mediaUrl='https://multimedia.nt.qq.com/fixture.wav';
+  const delivered=[],uploaded=[],replies=[],mediaUrl='https://multimedia.nt.qq.com/fixture.wav';
   const send=async(url,options)=>{
     options.beforeConnect?.();
     if(url===mediaUrl){assert.equal(options.headers.Authorization,undefined);return{status:200,body:Buffer.from(audio)};}
+    if(url==='https://bots.qq.com/app/getAppAccessToken')return{status:200,body:Buffer.from('{"access_token":"synthetic-token","expires_in":7200}')};
+    if(url==='https://api.sgroup.qq.com/v2/users/fixture-owner/files'){uploaded.push(JSON.parse(options.body));return{status:200,body:Buffer.from('{"file_info":"synthetic-file-info","ttl":3600}')};}
+    if(url==='https://api.sgroup.qq.com/v2/users/fixture-owner/messages'){replies.push(JSON.parse(options.body));return{status:200,body:Buffer.from('{"id":"synthetic-outbound"}')};}
     assert.equal(new URL(url).hostname,'callback.example.test');
     const body=JSON.parse(options.body);if(body.type==='verification')return{status:200,body:Buffer.from(JSON.stringify({challenge:body.challenge}))};
     delivered.push(body);return{status:202,body:Buffer.from('{}')};
@@ -58,6 +61,11 @@ test('actual standalone QQ backend and core router discover voice and preserve l
   assert.equal(output.body.result.content[1].type,'audio');assert.deepEqual(Buffer.from(output.body.result.content[1].data,'base64'),audio);
   assert.ok(!JSON.stringify(output).includes(mediaUrl));assert.ok(!JSON.stringify(output).includes('fixture-owner'));
   assert.equal((await call('get_qq_attachment',{message_id:'voice',attachment_index:0,url:mediaUrl})).status,400);
+  const file=Buffer.alloc(350000,65),args={message_id:'voice',type:'file',name:'reply.bin',mime_type:'application/octet-stream',data:file.toString('base64')};
+  assert.equal((await call('reply_qq_media',args)).body.result.structuredContent.status,'pending');await backend.bridge.tick();
+  assert.equal(uploaded.length,1);assert.equal(uploaded[0].srv_send_msg,false);assert.deepEqual(Buffer.from(uploaded[0].file_data,'base64'),file);
+  assert.deepEqual(replies,[{msg_type:7,media:{file_info:'synthetic-file-info'},msg_id:'voice',msg_seq:1}]);
+  assert.equal((await call('reply_qq_media',args)).body.result.structuredContent.status,'sent');await backend.bridge.tick();assert.equal(replies.length,1);
   assert.equal((await post('events/unsubscribe',{name:'qq.message.created',arguments:{conversation:'owner'},delivery:{mode:'webhook',url:'https://callback.example.test/voice'}})).status,200);
   assert.equal((await call('get_qq_attachment',{message_id:'voice',attachment_index:0})).body.error.code,-32012);
 });

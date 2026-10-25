@@ -1,4 +1,5 @@
 import { BridgeError, hash, plainText } from './common.js';
+import {validateQqMedia,QQ_RETAINED_MEDIA_BYTES} from './qq-media.js';
 
 const terminal = new Set(['sent', 'dead', 'cancelled', 'expired', 'uncertain']);
 // All external writes run in the existing leased worker. A lost acknowledgement
@@ -120,7 +121,8 @@ export class QqExperience {
       now - this.bridge.config.textRetentionMs, anchor.received, anchor.received, anchor.id, limit + 1);
     let budget = 30000; const messages = []; let truncated = rows.length > limit;
     for (const row of rows.slice(0, limit)) {
-      const m = this.store.message(row.id), reply = this.store.replyStatus(m.id).status === 'sent' ? this.store.replyText(m.id) : null;
+      const m = this.store.message(row.id), isMedia=this.store.get('SELECT format FROM qq_reply_options WHERE message_id=?',m.id)?.format==='media';
+      const reply = this.store.replyStatus(m.id).status === 'sent' ? isMedia?'[媒体回复]':this.store.replyText(m.id) : null;
       const transcript = m.attachments[0]?.transcript;
       const transcriptText = transcript ? `${m.text}\n[QQ 语音参考转写] ${transcript}` : m.text;
       const text = transcriptText?.length > 2000 ? transcriptText.slice(0,1999) + '…' : transcriptText;
@@ -133,6 +135,20 @@ export class QqExperience {
   }
   defer(job, at) {
     this.store.run("UPDATE jobs SET state='pending',attempts=attempts-1,next_at=?,lease_until=NULL,lease_token=NULL WHERE id=? AND lease_token=?", at, job.id, job.lease_token);
+  }
+  queueMedia(args,principal,now) {
+    const plan=validateQqMedia(args),id=args.message_id;
+    if(this.bridge.config.bridgeMode==='sites')throw new BridgeError('QQ media replies require the Tunnel runtime');
+    this.store.authorizeMessage(id,principal,now);
+    if(this.store.get('SELECT message_id FROM qq_streams WHERE message_id=?',id))throw new BridgeError('Finish the existing QQ text stream before using media in a new message');
+    const old=this.store.get('SELECT format FROM qq_reply_options WHERE message_id=?',id);
+    if(old&&old.format!=='media')throw new BridgeError('This message already has a different reply');
+    return this.store.queueReply(id,JSON.stringify(plan),principal,now,()=>{
+      this.store.run('INSERT INTO qq_reply_options VALUES (?,?,?)',id,this.sequence(id),'media');
+    },newBytes=>{
+      const retained=this.store.get("SELECT coalesce(sum(length(r.text)),0) AS bytes FROM replies r JOIN qq_reply_options o ON o.message_id=r.message_id WHERE o.format='media'").bytes;
+      if(retained+newBytes>QQ_RETAINED_MEDIA_BYTES)throw new BridgeError('QQ retained media capacity reached',{status:429,code:-32013,data:{limit:'media_bytes',max:QQ_RETAINED_MEDIA_BYTES}});
+    });
   }
   async sendJob(job, message) {
     const now = this.bridge.clock(), id = message.id;
@@ -150,6 +166,17 @@ export class QqExperience {
         options = { msg_seq: this.sequence(id), format: 'plain' };
         this.store.run('INSERT INTO qq_reply_options VALUES (?,?,?)', id, options.msg_seq, options.format);
       });
+      if(options.format==='media') {
+        let plan=JSON.parse(this.store.replyText(id));
+        if(!plan.fileInfo){
+          validateQqMedia({message_id:id,type:plan.type,name:plan.name,mime_type:plan.mimeType,data:plan.data});
+          const uploaded=await this.bridge.qq.uploadMedia(message,plan,{authorize});
+          plan={type:plan.type,name:plan.name,mimeType:plan.mimeType,...uploaded};
+          this.store.run('UPDATE replies SET text=? WHERE message_id=?',this.store.vault.seal(JSON.stringify(plan),`reply:${id}`),id);
+        }
+        const outbound=await this.bridge.qq.sendMedia(message,plan,{msgSeq:options.msg_seq,authorize});
+        this.store.recordReplyAck(job,outbound);return;
+      }
       const outbound = await this.bridge.sendQq(message, this.store.replyText(id), { ...options, msgSeq: options.msg_seq, authorize });
       this.store.recordReplyAck(job, outbound); return;
     }

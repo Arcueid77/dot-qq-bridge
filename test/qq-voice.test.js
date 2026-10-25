@@ -129,7 +129,7 @@ test('additive old-database migration, restart, encrypted voice retention and de
 
 test('adapter rejects URL injection, wrong IDs, invalid audio blocks and extra metadata', () => {
   const args={message_id:id,attachment_index:0},call={name:'get_qq_attachment',arguments:args};
-  for(const bad of [{...args,url:voice},{...args,attachment_index:1},{message_id:id},{...args,recipient:'other'}]) assert.throws(()=>qqAdapter.validateToolArguments(call.name,bad,true));
+  for(const bad of [{...args,url:voice},{...args,attachment_index:10},{message_id:id},{...args,recipient:'other'}]) assert.throws(()=>qqAdapter.validateToolArguments(call.name,bad,true));
   assert.throws(()=>qqAdapter.validateToolArguments(call.name,args,false));
   const value={message_id:id,attachment_index:0,type:'audio',mime_type:'audio/wav',size:audio.length};
   const result={isError:false,structuredContent:value,content:[{type:'audio',mimeType:'audio/wav',data:audio.toString('base64')}]};

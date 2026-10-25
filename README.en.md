@@ -8,11 +8,12 @@ Clone only this repository. A pinned `@dot-bridge/core` distribution is included
 
 ## Capabilities
 
-- Owner C2C text, retained conversation context, Markdown and answers up to 30000 characters.
+- Owner C2C text, images, voice and files, retained context, Markdown and answers up to 30000 characters.
 - A native input notification when processing starts, plus native updates to one reply.
 - Durable queues, deduplication and restart recovery; uncertain sends are never automatically resent.
-- Owner C2C voice is passed to the original dot for understanding and a text reply. QQ WAV resources and local SILK decoding need no transcription API.
-- QQ groups, guilds, other members, images, files, videos, quotations and voice replies are not supported.
+- Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 8 MiB and outgoing attachments at 5 MiB.
+- The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies require existing bytes; no text-to-speech service is included.
+- QQ groups, guilds, other members, videos and quoted messages are not supported.
 
 ## Start here
 
@@ -23,23 +24,9 @@ Clone only this repository. A pinned `@dot-bridge/core` distribution is included
 | Diagnose missing replies, expiry, backups and upgrades | [Operations and troubleshooting](docs/troubleshooting.en.md) |
 | Change code, add IM adapters or contribute a PR | [Development](docs/development.en.md) |
 
-Completed handoffs and duplicate guides have been removed from the current tree; use Git history when tracing earlier work.
+## Runtime
 
-## Offline checks
-
-Use Node.js **>=24.15 and <25** and trusted OpenSSL for TLS tests. Windows also requires Python 3.10+ and local NTFS; use `npm.cmd` if PowerShell restricts `npm.ps1`.
-
-```sh
-npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-npm run check
-npm test
-npm run simulate
-npm run simulate:gateway
-```
-
-Linux and native Windows have platform-specific private-file protection. Other operating systems are not supported for private Tunnel operation. The guide covers persistent Linux systemd services; Windows needs a separately configured background service with graceful stopping. A Docker template exists, but image building and runtime acceptance require separate verification.
-
-Tests use synthetic identities and local services. The 2026-10-15 standalone Windows regression recorded 226 passes, zero failures and zero skips. A separate [validation scope](docs/development.en.md) documents actual replies. Combined batches, visible client effects and natural subscription renewal retain acceptance gaps; one deployment does not prove every environment.
+Use Node.js **>=24.15 and <25** on a continuously running Linux VPS or native Windows with local NTFS. Windows also needs Python 3.10+. The deployment guide covers installation, owner pairing and systemd; development commands are in the development guide.
 
 ## Authorization and license
 

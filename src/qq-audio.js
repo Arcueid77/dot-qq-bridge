@@ -1,4 +1,4 @@
-import { Worker } from 'node:worker_threads';
+import {createSilkDecoder} from '@dot-bridge/core/audio/silk.js';
 import { BridgeError, plainText } from './common.js';
 import { destinationUrl } from './network.js';
 import { QQ_MEDIA_HOSTS } from './provider-network.js';
@@ -49,32 +49,15 @@ export function audioMime(bytes) {
   return null;
 }
 
-export async function decodeVoice(input) {
+const decodeSilk=createSilkDecoder(import.meta.resolve('silk-wasm'));
+export async function decodeVoice(input,options={}) {
   if (!Buffer.isBuffer(input) || !input.length || input.length > QQ_AUDIO_BYTES) throw new BridgeError('QQ voice size refused');
   const mime = audioMime(input);
   if (mime) return { bytes: Buffer.from(input), mime };
   // A worker isolates the decoder from the gateway heartbeat and can be stopped
   // on timeout. No media file, shell command, model API or persistent key is used.
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const worker = new Worker(new URL('./qq-audio-worker.js', import.meta.url), {
-      workerData: Uint8Array.from(input), stdout: true, stderr: true,
-      resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 }
-    });
-    worker.stdout.resume(); worker.stderr.resume();
-    const finish = bytes => {
-      if (settled) return;
-      settled = true; clearTimeout(timer); void worker.terminate();
-      if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > QQ_AUDIO_BYTES) {
-        reject(new BridgeError('QQ voice format unavailable; use its reference transcript or ask the sender for text')); return;
-      }
-      resolve({ bytes: Buffer.from(bytes), mime: 'audio/wav' });
-    };
-    const timer = setTimeout(() => finish(null), 10000);
-    worker.once('message', finish);
-    worker.once('error', () => finish(null));
-    worker.once('exit', () => finish(null));
-  });
+  try{return{bytes:await decodeSilk(input,options),mime:'audio/wav'};}
+  catch{throw new BridgeError('QQ voice format unavailable; use its reference transcript or ask the sender for text');}
 }
 
 export function createVoiceReader(send) {

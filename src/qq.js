@@ -1,5 +1,5 @@
 import { BridgeError, plainText, string, timestamp } from './common.js';
-import { incomingVoice } from './qq-audio.js';
+import { incomingMedia, validateQqMedia,prepareQqUpload } from './qq-media.js';
 
 export function incomingMessage(payload, config, now) {
   if (!config.ownerOpenid || !config.principal || config.authMode === 'deny') throw new BridgeError('Owner binding is not configured', { status: 503 });
@@ -10,9 +10,9 @@ export function incomingMessage(payload, config, now) {
   if (data.author.bot === true || (data.message_type !== undefined && data.message_type !== 0) ||
       data.ark_data || (data.msg_elements !== undefined && (!Array.isArray(data.msg_elements) || data.msg_elements.length)) ||
       data.message_reference || data.group_openid || data.guild_id || data.channel_id) return null;
-  const attachments = incomingVoice(data.attachments);
+  const attachments = incomingMedia(data.attachments);
   if (attachments === null) return null;
-  const text = attachments.length && (data.content === undefined || (typeof data.content === 'string' && !data.content.trim())) ? '[语音]' : data.content;
+  const text = attachments.length && (data.content === undefined || (typeof data.content === 'string' && !data.content.trim())) ? attachments.map(item=>({audio:'[语音]',image:'[图片]',file:'[文件]'}[item.type])).join('') : data.content;
   string(data.id, 256); string(payload.id, 256); plainText(text);
   const occurred = timestamp(data.timestamp);
   if (occurred > now + 30000 || occurred + config.replyTtlMs <= now) throw new BridgeError('QQ message is too old or in the future');
@@ -115,7 +115,30 @@ export function createQqClient(config, send, clock = Date.now) {
     return sendBody(message, { input_mode: 'replace', input_state: done ? 10 : 1, content_type: 'markdown', content_raw: text,
       event_id: message.id, msg_id: message.id, msg_seq: msgSeq, index, ...(streamId ? { stream_msg_id: streamId } : {}) }, { authorize, stream: true, streamId });
   }
-  return { sendReply, sendTyping, sendStream, gatewayInfo, clearToken };
+  async function uploadMedia(message,plan,{authorize=()=>{}}={}) {
+    if(message?.owner!==config.ownerOpenid||typeof message.id!=='string'||!message.id||message.expires<=clock())throw new BridgeError('QQ media reply binding is invalid');
+    validateQqMedia({message_id:message.id,type:plan?.type,name:plan?.name,mime_type:plan?.mimeType,data:plan?.data});
+    plan=await prepareQqUpload(plan,{authorize});
+    authorize();const accessToken=await getToken();authorize();
+    if(message.expires<=clock())throw new BridgeError('QQ passive reply window expired');
+    const body=Buffer.from(JSON.stringify({file_type:{image:1,audio:3,file:4}[plan.type],file_name:plan.name,file_data:plan.data,srv_send_msg:false}));
+    let response;
+    try{response=await(send.resourceRequester??send)(`${apiOrigin}/v2/users/${encodeURIComponent(message.owner)}/files`,{purpose:'provider',hosts:[new URL(apiOrigin).hostname],headers:{Authorization:`QQBot ${accessToken}`,'Content-Type':'application/json','X-Bot-Appid':config.qqAppId},body,beforeConnect:authorize});}
+    catch(error){if(error instanceof BridgeError&&error.code===-32012)throw error;throw new BridgeError('QQ media upload acknowledgement unknown',{uncertain:true});}
+    finally{body.fill(0);}
+    if(response.status===401){clearToken();throw new BridgeError('QQ authentication rejected',{retryable:true});}
+    if(response.status===429)throw new BridgeError('QQ rate limited',{retryable:true});
+    if(response.status>=500)throw new BridgeError('QQ media upload acknowledgement unknown',{uncertain:true});
+    let value;try{value=JSON.parse(response.body.toString('utf8'));}catch{throw new BridgeError('QQ media upload acknowledgement unknown',{uncertain:true});}
+    if(response.status!==200||(value.code!==undefined&&value.code!==0)||(value.err_code!==undefined&&value.err_code!==0))throw new BridgeError('QQ media upload rejected');
+    if(typeof value.file_info!=='string'||!value.file_info||value.file_info.length>16384||!Number.isSafeInteger(value.ttl)||value.ttl<0)throw new BridgeError('QQ media upload acknowledgement unknown',{uncertain:true});
+    return {fileInfo:value.file_info,uploadedExpires:value.ttl===0?message.expires:Math.min(message.expires,clock()+value.ttl*1000)};
+  }
+  async function sendMedia(message,plan,{msgSeq,authorize=()=>{}}={}) {
+    if(message?.owner!==config.ownerOpenid||typeof plan.fileInfo!=='string'||!plan.fileInfo||plan.fileInfo.length>16384||!Number.isSafeInteger(plan.uploadedExpires)||plan.uploadedExpires<=clock()||!Number.isInteger(msgSeq)||msgSeq<1||msgSeq>5)throw new BridgeError('QQ media reply binding or uploaded file expired');
+    return sendBody(message,{msg_type:7,media:{file_info:plan.fileInfo},msg_id:message.id,msg_seq:msgSeq},{authorize});
+  }
+  return { sendReply, sendTyping, sendStream, uploadMedia, sendMedia, gatewayInfo, clearToken };
 }
 export function createQqSender(config, send, clock = Date.now) {
   return createQqClient(config, send, clock).sendReply;

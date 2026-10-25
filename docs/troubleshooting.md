@@ -2,6 +2,21 @@
 
 [简体中文](troubleshooting.md) | [English](troubleshooting.en.md) | [首页](../README.md)
 
+## 媒体回复与回滚
+
+图片、文件或语音显示 `pending` 时还没有送达；`uncertain` 表示平台可能已经收到，不能重发。上传后的文件引用会加密保存，明确限流后的重试继续使用该引用，避免重复上传。
+
+回退到不支持媒体的旧版前，先停止服务，并只读检查未完成媒体队列的数量：
+
+```sql
+SELECT count(*) AS unfinished_media
+FROM jobs j JOIN qq_reply_options o ON o.message_id=j.message_id
+WHERE o.format='media' AND j.kind='reply'
+AND j.state IN ('pending','processing','uncertain');
+```
+
+数量大于零时保持新版本，或停机保留现场；不要删库、改状态或让旧版消费这些任务。`uncertain` 需要人工核对，不能通过等待自动重试来清空。旧版也不能正确展示媒体回复上下文；需要完整回退时，用迁移前的一致性备份制定恢复方案，同时保留新库以核对这期间的消息与去重记录。密钥、原绑定和唯一消费者都必须保持一致。
+
 本文用于已按[部署指南](deployment.md)配置的实例。服务名和路径均为示例，先核对实际配置。操作者查看脱敏状态即可，不要把整个环境、数据库、消息正文或完整 callback URL 发到聊天。
 
 ## 逐层检查

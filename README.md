@@ -8,11 +8,12 @@
 
 ## 支持什么
 
-- 本人 C2C 文字和语音、连续上下文、Markdown、最长 30000 字符回答。
+- 本人 C2C 文字、图片、语音和文件，连续上下文、Markdown、最长 30000 字符回答。
 - 实际处理时的原生输入提示、同一回复的原生流式更新。
 - 持久队列、去重、重启恢复；发送结果不明时停止自动重发。
-- 语音交给原 dot 理解，再用文字回复；支持 QQ 的 WAV 音频和 SILK 本地解码，无需另配转写 API。
-- 当前不接收 QQ 群、频道、其他成员、图片、文件、视频或引用，也不生成语音回复。
+- 可回复图片、文件或已有音频；WAV 语音会在本机转为 QQ 使用的 SILK。接收附件最多 8 MiB，回复附件最多 5 MiB。
+- 语音交给原 dot 理解；支持 WAV 音频和 SILK 本地解码，无需另配转写 API。语音回复需要已有音频，不包含文字转语音服务。
+- 当前不接收 QQ 群、频道、其他成员、视频或引用消息。
 
 ## 从这里开始
 
@@ -23,23 +24,9 @@
 | 查不回复、过期、重复、备份及升级 | [运行与排错](docs/troubleshooting.md) |
 | 修改代码、接入更多 IM、提交 PR | [开发说明](docs/development.md) |
 
-已完成交接和重复说明已从当前目录删除；需要追溯时查看 Git 历史。
+## 运行环境
 
-## 离线检查
-
-需要 Node.js **>=24.15 且 <25**，TLS 测试需要可信 OpenSSL。Windows 还需要 Python 3.10+ 与本地 NTFS；PowerShell 可用 `npm.cmd`。
-
-```sh
-npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-npm run check
-npm test
-npm run simulate
-npm run simulate:gateway
-```
-
-Linux 与原生 Windows 有相应私有文件保护实现；其他系统尚不支持私人 Tunnel 运行。Linux 的 systemd 持续部署步骤见指南；Windows 运行需要独立配置能处理优雅停止的后台服务。Docker 模板存在，但镜像构建和运行须另行验证。
-
-测试使用合成身份与本机服务，不接真实账户。2026-10-15 的 Windows 独立回归为 226 通过、0 失败、0 跳过；真实 VPS 收发记录另见[验证范围](docs/development.md)。合并批次、客户端提示视觉效果和自然续订仍有未验收项，不能把一次部署结果当作所有环境的保证。
+需要 Node.js **>=24.15 且 <25**。可以部署在长期运行的 Linux VPS，或支持私有文件保护的 Windows 本地 NTFS；Windows 还需要 Python 3.10+。安装、原应用配对与 systemd 常驻步骤见部署指南，开发测试命令见开发说明。
 
 ## 授权和许可
 

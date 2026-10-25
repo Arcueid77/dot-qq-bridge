@@ -115,7 +115,7 @@ test('live catalog and authenticated Events are fixed; no gateway request until 
   const f = await liveHarness(t, { callback: false });
   const gw = fixtureGateway(f); f.app.attachGateway(gw.gateway); await gw.gateway.start();
   assert.equal(gw.gateway.status().phase, 'waiting_subscription'); assert.equal(f.requests.length, 0);
-  assert.deepEqual((await f.post('tools/list')).body.result.tools.map(x => x.name), ['get_qq_message', 'get_qq_attachment', 'reply_to_qq', 'begin_qq_reply', 'append_qq_reply', 'get_qq_context', 'check_bridge_setup']);
+  assert.deepEqual((await f.post('tools/list')).body.result.tools.map(x => x.name), ['get_qq_message', 'get_qq_attachment', 'reply_to_qq', 'reply_qq_media', 'begin_qq_reply', 'append_qq_reply', 'get_qq_context', 'check_bridge_setup']);
   assert.equal((await f.post('events/list')).body.result.events[0].name, 'qq.message.created');
   const rejected = await f.post('events/subscribe', subscriptionParams()); assert.equal(rejected.status, 400);
   assert.equal(rejected.body.error.data.callback_hostname, 'receiver.example.com'); assert.equal(f.requests.length, 0);

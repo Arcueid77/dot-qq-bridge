@@ -55,17 +55,23 @@ observed batch conflict and the narrower successful consecutive-message test.
 Initial deployment remains owner C2C only. QQ group, guild and other-user messages
 are ignored. There is no unapproved group subscription or all-member access.
 
-## Voice messages
+## Images, voice and files
 
-Send a voice message to the same QQ bot. The original dot listens and replies in text to the same private chat; no new bot or transcription API key is needed. Sending voice replies is not supported.
+Send an image, voice message or file to the same QQ bot. The dot reads the attachment list, then the selected attachment by its zero-based index. Reads remain bound to the original owner's private message; no arbitrary URL, local path or recipient is accepted.
 
-`get_qq_message` includes voice metadata and optional QQ reference transcription. `get_qq_attachment(message_id, attachment_index:0)` returns MCP audio. The bridge prefers QQ's WAV resource, then tries the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. Limits are one voice attachment per message, 8 MiB per resource, and two minutes for SILK decoding. Reference transcription can be inaccurate and never grants authority. It is retained in the bounded conversation context.
+`get_qq_message` lists up to 10 attachments, each bounded to 8 MiB. `get_qq_attachment(message_id, attachment_index)` returns PNG/JPEG/GIF/WebP images, MCP file resources, or audio. Voice prefers QQ's WAV resource and falls back to the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. SILK is limited to two minutes. QQ reference transcription can be inaccurate and never grants authority.
 
-If audio is unavailable, the dot may use the reference transcription; without usable content, it should ask the sender to resend or use text. It must not invent the voice contents. Signed download links can expire. Real AMR bitstreams, unknown formats, images, files, videos and quoted messages remain unsupported.
+Use `reply_qq_media` for one final image, file or existing audio reply. PNG/JPEG images and SILK voice are supported; 16-bit mono PCM WAV is converted locally to SILK, up to two minutes. Outgoing attachments are capped at 5 MiB for the official direct-upload path. Other audio can be sent as a file. No text-to-speech service or external file hosting is included. Finish an existing text stream as text before using media for another source message.
+
+If audio is unavailable, use an existing reference transcription or ask the sender to resend or use text. Signed links can expire. Real AMR bitstreams, unknown formats, video and quoted messages remain unsupported. File and audio interpretation also depends on the original dot's capabilities.
 
 Downloads use only HTTPS URLs from verified owner events on `multimedia.nt.qq.com`, `gchat.qpic.cn` and `c2cpicdw.qpic.cn`, without bot credentials or redirects. Direct requests retain public DNS/IP checks and original-host TLS validation; configured proxies remain in use. Other domains are not automatically approved. Audio is handled in memory. Resource links and reference transcription are encrypted and logically cleared after seven days; old SQLite pages, WAL and backups are not thereby physically erased.
 
-Update the QQ backend and its router adapter together, then refresh the existing plugin catalog to discover `get_qq_attachment`. Preserve the database, storage key and single subscription. The migration only adds a nullable encrypted attachment column. Before rolling back, finish pending voice work or keep the service stopped with its pending state intact; never discard the database.
+Update the QQ backend and its router adapter together, then refresh the existing plugin catalog to discover `get_qq_attachment` and `reply_qq_media`. Preserve the database, storage key and single subscription. Media uses the existing encrypted queue; older versions cannot process these jobs. Follow the downgrade rules in [troubleshooting](troubleshooting.en.md).
+
+Uploads follow Tencent's [C2C media interface](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_files.post.html): upload first, then reply passively to the source message. A platform rejection never causes a switch of bot, broader permissions or proactive sends.
+
+Retained encrypted media replies are limited to 64 MiB in total, including uncertain outcomes. At the limit, new media is refused before queueing; an identical existing reply can still return its status. Do not delete state or turn an uncertain job back into pending to free space. Follow the retention policy and reconcile the original chat first.
 
 ## Runtime limits
 

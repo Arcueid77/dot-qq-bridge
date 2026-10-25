@@ -194,7 +194,7 @@ export class Store {
     }
     return message;
   }
-  queueReply(id, text, principal, now, configure = () => {}) {
+  queueReply(id, text, principal, now, configure = () => {}, checkRetainedBytes = () => {}) {
     return this.tx(() => {
       const message = this.authorizeMessage(id, principal, now);
       const previous = this.get('SELECT digest FROM replies WHERE message_id=?', id);
@@ -204,7 +204,12 @@ export class Store {
       }
       if (message.expires <= now) throw new BridgeError('QQ passive reply window expired');
       this.capacity();
-      this.run('INSERT INTO replies VALUES (?,?,?,?)', id, hash(text), this.vault.seal(text, `reply:${id}`), now);
+      const sealed = this.vault.seal(text, `reply:${id}`);
+      // Preserve the idempotent return above even when retained media is full.
+      // A provider-specific byte budget runs in this same transaction, before
+      // either the reply or its job exists, and measures the stored ciphertext.
+      if (checkRetainedBytes(Buffer.byteLength(sealed)) !== undefined) throw new BridgeError('Reply capacity check must complete synchronously');
+      this.run('INSERT INTO replies VALUES (?,?,?,?)', id, hash(text), sealed, now);
       this.run('INSERT INTO jobs(id,kind,message_id,subscription_id,next_at) VALUES (?,?,?,?,?)', `reply:${id}`, 'reply', id, message.subscription_id, now);
       if (configure(message) !== undefined) throw new BridgeError('Reply configuration must complete synchronously');
       return this.replyStatus(id);

@@ -2,6 +2,21 @@
 
 [简体中文](troubleshooting.md) | [English](troubleshooting.en.md) | [Home](../README.en.md)
 
+## Media replies and rollback
+
+`pending` is not delivery; `uncertain` means the provider may have received the reply and it must not be resent. Uploaded references are encrypted and reused after a known rate-limit response.
+
+Before downgrading to a version without media support, stop the service and read the unfinished-media count:
+
+```sql
+SELECT count(*) AS unfinished_media
+FROM jobs j JOIN qq_reply_options o ON o.message_id=j.message_id
+WHERE o.format='media' AND j.kind='reply'
+AND j.state IN ('pending','processing','uncertain');
+```
+
+If nonzero, keep the new version or leave it stopped with its state intact. Do not delete the database, rewrite job states or let the old worker consume these jobs. Uncertain outcomes require manual reconciliation. Older versions also cannot render media reply context correctly. A complete downgrade needs an explicit recovery plan from the pre-upgrade consistent backup, while preserving the new database to reconcile intervening messages and deduplication. Keep the original key, binding and single-consumer topology.
+
 Use this with an instance configured through [Deployment](deployment.en.md). Names and paths below are examples; verify the actual installation first. Inspect sanitized state rather than sharing whole environments, databases, message text or full callback URLs.
 
 ## Verify each layer
