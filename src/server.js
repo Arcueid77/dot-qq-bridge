@@ -7,6 +7,7 @@ import { makePublicRequester } from './network.js';
 import { qqChallenge, qqVerify } from './signatures.js';
 import { assertApprovedTunnelLive } from './tunnel-service-operation.js';
 import {ownerConfigured} from './setup.js';
+import {MEDIA_RPC_LIMIT} from '@dot-bridge/core/channels/media.js';
 
 const VERSION = '2026-07-28';
 function json(res, status, value, headers = {}) {
@@ -17,7 +18,7 @@ function json(res, status, value, headers = {}) {
 async function readBody(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) throw new BridgeError('Expected application/json', { status: 415 });
   if (req.headers['content-encoding'] && req.headers['content-encoding'] !== 'identity') throw new BridgeError('Compressed bodies are unsupported', { status: 415 });
-  const limit = req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?8*1024*1024:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
+  const limit = req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?MEDIA_RPC_LIMIT:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
   if (Number(req.headers['content-length']) > limit) throw new BridgeError('Request too large', { status: 413 });
   let timer;
   const read = (async () => {
@@ -73,6 +74,7 @@ export function createApp(config, { clock = Date.now, send, worker = true, appro
   send ??= makePublicRequester();
   const authenticate = createAuthenticator(config, send, clock), bridge = new Bridge(config, { clock, send, approvedLive });
   let interval, lastTick = Promise.resolve(), stopping = false, lastPrune = 0, gateway, listenPromise, closePromise;
+  bridge.gatewayConnected=()=>{const connected=gateway?.status()?.connected;return typeof connected==='boolean'?connected:undefined;};
   const readiness = () => {
     const binding_ready=ownerConfigured(config),mcp_subscription_active=!!bridge.store.activeSubscription(clock()),gateway_connected=gateway?.status().connected===true;
     return {ready:bridge.ready()&&mcp_subscription_active&&(config.qqTransport==='webhook'||gateway_connected),binding_ready,mcp_subscription_active,gateway_connected};

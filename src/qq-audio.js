@@ -1,10 +1,11 @@
 import {createSilkDecoder} from '@dot-bridge/core/audio/silk.js';
+import {MAX_MEDIA_BYTES,MAX_MEDIA_BASE64} from '@dot-bridge/core/channels/media.js';
 import { BridgeError, plainText } from './common.js';
 import { destinationUrl } from './network.js';
 import { QQ_MEDIA_HOSTS } from './provider-network.js';
 
-export const QQ_AUDIO_BYTES = 8 * 1024 * 1024;
-export const QQ_AUDIO_BASE64 = Math.ceil(QQ_AUDIO_BYTES / 3) * 4;
+export const QQ_AUDIO_BYTES = MAX_MEDIA_BYTES;
+export const QQ_AUDIO_BASE64 = MAX_MEDIA_BASE64;
 export const QQ_AUDIO_DURATION_MS = 120000;
 export const QQ_AUDIO_MIMES = Object.freeze(['audio/wav', 'audio/mpeg', 'audio/ogg']);
 

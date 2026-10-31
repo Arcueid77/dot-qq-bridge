@@ -11,7 +11,7 @@ Clone only this repository. A pinned `@dot-bridge/core` distribution is included
 - Owner C2C text, images, voice and files, retained context, Markdown and answers up to 30000 characters.
 - A native input notification when processing starts, plus native updates to one reply.
 - Durable queues, deduplication and restart recovery; uncertain sends are never automatically resent.
-- Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 8 MiB and outgoing attachments at 5 MiB.
+- Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 5 MiB and outgoing attachments at 5 MiB.
 - The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies require existing bytes; no text-to-speech service is included.
 - QQ groups, guilds, other members, videos and quoted messages are not supported.
 

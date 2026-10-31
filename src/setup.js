@@ -1,6 +1,7 @@
 import { callbackUrl } from './network.js';
 import { callbackTransportStatusSchema, unverifiedCallbackTransport } from './callback-transport.js';
 import { projectCallbackTransportStatus } from '@dot-bridge/core/transport';
+import {runtimeStatusProperties} from '@dot-bridge/core/channels/status.js';
 
 const bindings = { qqAppId: 'QQ_APP_ID', qqSecret: 'QQ_BOT_SECRET', ownerOpenid: 'QQ_OWNER_OPENID', principal: 'MCP_OWNER_SUBJECT' };
 export function ownerConfigured(config) {
@@ -30,7 +31,7 @@ export const setupTool = {
   name: 'check_bridge_setup', title: 'Check bridge setup and callback hostname',
   description: 'Authenticated owner-only local preflight. Reports missing setting names and optionally the callback hostname, never its path, query, credentials or secret. No network request, DNS check, host approval or configuration change. Use when an event is hidden or subscription is rejected; manually review a hostname before allowlisting it.',
   inputSchema: { type: 'object', properties: { callback_url: { type: 'string', minLength: 1, maxLength: 2048 } }, additionalProperties: false },
-  outputSchema: { type: 'object', properties: { configuration_ready: { type: 'boolean' }, events_discoverable: { type: 'boolean' },
+  outputSchema: { type: 'object', properties: { ...runtimeStatusProperties(),configuration_ready: { type: 'boolean' }, events_discoverable: { type: 'boolean' },
     missing_settings: { type: 'array', items: { type: 'string' } }, callback_hostname: { type: ['string', 'null'] },
     callback_policy: { type: 'string', enum: ['not_provided', 'invalid_url', 'blocked', 'allowlisted'] },
     callback_transport: callbackTransportStatusSchema,

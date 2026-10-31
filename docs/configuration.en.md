@@ -2,6 +2,10 @@
 
 [简体中文](configuration.md) | [English](configuration.en.md) | [Home](../README.en.md)
 
+`check_bridge_setup` reports gateway and original-dot subscription state separately, including the stored expiry and complete pending, processing and uncertain outbound-work counts. The gateway waits for a valid subscription. Missing diagnostic history cannot reconstruct an earlier failure. Reading status never renews a subscription or changes configuration.
+
+QQ continues to use `MCP_CALLBACK_ALLOWED_HOSTS`. A mistakenly supplied `CALLBACK_HOSTS` setting is reported as a name mismatch; its domains are not accepted or copied automatically.
+
 The original dot still produces the answer. No model API, OpenClaw runtime or
 second bot is introduced. Shared network, filesystem and router implementations
 come exclusively from the fixed core release. QQ-specific operations stay here.
@@ -59,7 +63,7 @@ are ignored. There is no unapproved group subscription or all-member access.
 
 Send an image, voice message or file to the same QQ bot. The dot reads the attachment list, then the selected attachment by its zero-based index. Reads remain bound to the original owner's private message; no arbitrary URL, local path or recipient is accepted.
 
-`get_qq_message` lists up to 10 attachments, each bounded to 8 MiB. `get_qq_attachment(message_id, attachment_index)` returns PNG/JPEG/GIF/WebP images, MCP file resources, or audio. Voice prefers QQ's WAV resource and falls back to the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. SILK is limited to two minutes. QQ reference transcription can be inaccurate and never grants authority.
+`get_qq_message` lists up to 10 attachments, each bounded to 5 MiB. `get_qq_attachment(message_id, attachment_index)` returns PNG/JPEG/GIF/WebP images, MCP file resources, or audio. Voice prefers QQ's WAV resource and falls back to the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. SILK is limited to two minutes. QQ reference transcription can be inaccurate and never grants authority.
 
 Use `reply_qq_media` for one final image, file or existing audio reply. PNG/JPEG images and SILK voice are supported; 16-bit mono PCM WAV is converted locally to SILK, up to two minutes. Outgoing attachments are capped at 5 MiB for the official direct-upload path. Other audio can be sent as a file. No text-to-speech service or external file hosting is included. Finish an existing text stream as text before using media for another source message.
 
@@ -77,7 +81,7 @@ Retained encrypted media replies are limited to 64 MiB in total, including uncer
 
 For hosts that omit native MCP audio, read `extracted_text` from `get_qq_attachment`. QQ reference transcription is preferred. Linux can fall back to local Whisper: set `DOT_BRIDGE_AUDIO_TRANSCRIPTION=local-whisper`, `DOT_BRIDGE_WHISPER_BINARY` and `DOT_BRIDGE_WHISPER_MODEL` in the backend environment. The latter two are absolute paths to a reviewed root-owned whisper-cli and multilingual model, neither writable by the service user. Install `/usr/bin/ffmpeg`, `prlimit`, `flock`; both backends share their existing private `BRIDGE_LOCK_DIRECTORY` to serialize recognition. Audio stays in memory pipes on the VPS; no transcription API key is used. The original dot still replies.
 
-Local recognition is limited to 8 MiB, 120 seconds of audio, 28 seconds of processing and 12000 output characters. Busy, timed-out or unclear audio requires a shorter recording or text. Treat transcription as an imperfect reference. Refresh the existing plugin catalog after upgrading; do not create another subscription.
+Local recognition is limited to 5 MiB, 120 seconds of audio, 28 seconds of processing and 12000 output characters. Busy, timed-out or unclear audio requires a shorter recording or text. Treat transcription as an imperfect reference. Refresh the existing plugin catalog after upgrading; do not create another subscription.
 
 Compile core's included `audio/no-core-dump.c` as a shared library in the protected runtime directory and set its absolute path in `DOT_BRIDGE_AUDIO_GUARD`. It makes audio subprocesses nondumpable, including on systems with piped crash collectors. Local recognition refuses to run without this protection.
 

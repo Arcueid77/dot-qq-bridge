@@ -2,6 +2,10 @@
 
 [简体中文](configuration.md) | [English](configuration.en.md) | [首页](../README.md)
 
+`check_bridge_setup` 会分别显示网关、原 dot 订阅及实际到期时间，并统计所有待发送、发送中和结果不明的任务。网关会等待有效订阅，缺少订阅时应先在原 dot 完成订阅。没有现成错误记录时会明确显示无法还原；查看状态不会重订阅或改配置。
+
+QQ 组件仍使用 `MCP_CALLBACK_ALLOWED_HOSTS`。如果误填了新渠道使用的 `CALLBACK_HOSTS`，状态会提示名称不匹配；该名称不会自动生效，也不会把其中域名加入允许列表。
+
 答案仍由原 dot 生成，不引入模型 API、OpenClaw 运行时或第二个机器人。共享网络、文件保护和路由仅来自固定 core 发行包；QQ 专属操作由本仓库持有。
 
 实际开始处理时，仅调用一次 `begin_qq_reply(message_id)`。它排队发送 QQ 原生 `msg_type=6` 输入提示，持续 60 秒，消耗一个被动发送序号，但不延长原消息期限。不重复发送输入提示保活。提示失败与答案是否送达分开判断，两个发送序号独立持久保存。
@@ -22,7 +26,7 @@
 
 直接给同一个机器人发送图片、语音或文件即可。dot 先读取附件列表，再按序号读取需要的内容；附件始终属于这条本人私聊消息，不能用一个网址或文件路径让桥代为下载其他内容。
 
-每条消息最多读取 10 个附件，每个最多 8 MiB。`get_qq_message` 列出附件；`get_qq_attachment(message_id, attachment_index)` 读取指定附件，序号从 0 开始。图片支持 PNG、JPEG、GIF、WebP；文件以 MCP resource 返回。语音优先取 QQ 的 WAV，失败时尝试原文件；SILK 在本机解码成 WAV，也可读取 MP3、Ogg。SILK 最长两分钟。QQ 的参考转写可能听错，不能当作新的授权。
+每条消息最多读取 10 个附件，每个最多 5 MiB。`get_qq_message` 列出附件；`get_qq_attachment(message_id, attachment_index)` 读取指定附件，序号从 0 开始。图片支持 PNG、JPEG、GIF、WebP；文件以 MCP resource 返回。语音优先取 QQ 的 WAV，失败时尝试原文件；SILK 在本机解码成 WAV，也可读取 MP3、Ogg。SILK 最长两分钟。QQ 的参考转写可能听错，不能当作新的授权。
 
 可以用 `reply_qq_media` 回复一张图片、一个文件或一段已有音频，每条原消息只能选一种最终回复。图片为 PNG/JPEG；原生语音接受 SILK 或 16 位单声道 PCM WAV，WAV 会在本机转成 SILK，最长两分钟。每个回复附件最多 5 MiB，这是当前采用的官方直传方式的限制。其他音频可以作为文件发送；桥本身不把文字合成为语音，也不创建外部下载链接。已经开始的文字流要用文字完成，不能中途换成媒体。
 
@@ -42,7 +46,7 @@
 
 在后端环境文件设置 `DOT_BRIDGE_AUDIO_TRANSCRIPTION=local-whisper`、`DOT_BRIDGE_WHISPER_BINARY` 和 `DOT_BRIDGE_WHISPER_MODEL`。后两项为已安装、root 所有且服务用户不可修改的 whisper-cli 和多语言模型绝对路径；依赖 `/usr/bin/ffmpeg`、`prlimit`、`flock`。两个后端复用原 `BRIDGE_LOCK_DIRECTORY`，同一时刻只转写一条。音频只经过内存管道，不上传到外部转写服务，也不需要 API key。
 
-本地转写限 8 MiB、两分钟音频和 28 秒处理时间，返回最多 12000 字符。繁忙、超时或听不清时请重发较短语音或文字，不把参考转写当作准确原文。升级后刷新现有插件工具目录，不新建订阅。
+本地转写限 5 MiB、两分钟音频和 28 秒处理时间，返回最多 12000 字符。繁忙、超时或听不清时请重发较短语音或文字，不把参考转写当作准确原文。升级后刷新现有插件工具目录，不新建订阅。
 
 从已安装的 core 包中编译 `audio/no-core-dump.c`，把生成的共享库放到同样受保护的运行目录，并设置 `DOT_BRIDGE_AUDIO_GUARD` 为其绝对路径。这个小组件禁止音频进程生成内存转储，避免系统崩溃收集器保存语音；缺少它时不执行本地转写。
 

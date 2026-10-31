@@ -84,8 +84,9 @@ test('unapproved library runtime rejects before credential reads, lock, listener
   assert.equal(fs.existsSync(f.env.DATABASE_PATH), false);
 });
 
-async function liveHarness(t, { callback = true, worker = false } = {}) {
+async function liveHarness(t, { callback = true, worker = false, wrongSetting = false } = {}) {
   const f = fixture(t); if (!callback) f.env.MCP_CALLBACK_ALLOWED_HOSTS = '';
+  if(wrongSetting)f.env.CALLBACK_HOSTS='ignored.example';
   let now = Date.parse('2026-10-03T12:00:00Z'); const requests = [], events = [], replies = [];
   const send = async (url, options) => {
     options.beforeConnect?.(); requests.push(url);
@@ -121,6 +122,23 @@ test('live catalog and authenticated Events are fixed; no gateway request until 
   assert.equal(rejected.body.error.data.callback_hostname, 'receiver.example.com'); assert.equal(f.requests.length, 0);
   assert.equal((await f.post('ping', {}, { authorization: 'Bearer fake' })).status, 401);
   assert.equal((await fetch(`${f.origin}/qq/webhook`, { method: 'POST' })).status, 404);
+});
+
+test('authenticated setup distinguishes real expiry, wrong setting names and complete durable outbound work',async t=>{
+ const f=await liveHarness(t,{wrongSetting:true}),gw=fixtureGateway(f);f.app.attachGateway(gw.gateway);await gw.gateway.start();
+ const inspect=()=>f.post('tools/call',{name:'check_bridge_setup',arguments:{}});
+ const empty=(await inspect()).body.result.structuredContent;assert.equal(empty.subscription_status.state,'none');assert.equal(empty.subscription_status.expires_at,null);
+ assert.equal(empty.connection_status.callback_setting_name,'MCP_CALLBACK_ALLOWED_HOSTS');assert.equal(empty.connection_status.wrong_callback_setting_present,true);assert.equal(empty.connection_status.callback_hosts_count,1);assert.equal(empty.connection_status.diagnostic_history,'unavailable');
+ const rejected=await f.post('events/subscribe',subscriptionParams({delivery:{...subscriptionParams().delivery,url:'https://unapproved.example/private-status-callback'}}));assert.equal(rejected.body.error.code,-32012);
+ const diagnostic=(await inspect()).body.result.structuredContent.subscription_diagnostics.at(-1);assert.equal(diagnostic.stage,'policy');assert.equal(diagnostic.code,-32012);assert.equal(diagnostic.hostname,'unapproved.example');
+ const sub=await f.post('events/subscribe',subscriptionParams());assert.equal(sub.status,200);await gw.gateway.connect();gw.hello();gw.ready();
+ f.app.bridge.acceptQq(qqPayload(f.now()),'status-replay');const store=f.app.bridge.store;
+ for(let i=0;i<18;i++)store.run('INSERT INTO jobs(id,kind,message_id,subscription_id,state,next_at) VALUES (?,?,?,?,?,?)',`status-${i}`,i<12?'reply':i<16?'stream':'typing','fixture-message-1',sub.body.result.id,i<12?'pending':i<16?'processing':'uncertain',f.now());
+ const businessSnapshot=()=>JSON.stringify({subscriptions:store.all('SELECT * FROM subscriptions ORDER BY id'),jobs:store.all('SELECT * FROM jobs ORDER BY id'),replies:store.all('SELECT * FROM replies ORDER BY message_id'),metadata:store.all('SELECT * FROM metadata ORDER BY key')});
+ const before=businessSnapshot(),snapshot=(await inspect()).body.result.structuredContent;assert.equal(businessSnapshot(),before);
+ assert.deepEqual(snapshot.reply_work,{pending:12,processing:4,uncertain:2});assert.equal(snapshot.subscription_status.expires_at,sub.body.result.refreshBefore);assert.equal(snapshot.subscription_active,true);assert.equal(snapshot.gateway_connected,true);
+ for(const canary of ['private-status-callback','fixture_qq_owner','synthetic-qq-secret',subscriptionParams().delivery.secret])assert.equal(JSON.stringify(snapshot).includes(canary),false);
+ f.advance(60001);const expired=(await inspect()).body.result.structuredContent;assert.equal(expired.subscription_status.state,'expired');assert.equal(expired.subscription_active,false);
 });
 test('synthetic live gateway and encrypted durable queue complete one reply, reject caller recipients, expire and restart safely', async t => {
   const f = await liveHarness(t); const gw = fixtureGateway(f); f.app.attachGateway(gw.gateway); await gw.gateway.start();

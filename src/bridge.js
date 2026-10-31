@@ -11,6 +11,8 @@ import { qqToolDefinitions } from './qq-contract.js';
 import { QqExperience } from './qq-experience.js';
 import {createMediaReader,mediaMetadata} from './qq-media.js';
 import { transcribeAudio } from '@dot-bridge/core/audio';
+import {inspectLegacyRuntimeStatus,legacySubscriptionDiagnostics} from '@dot-bridge/core/channels/legacy-status.js';
+import {trackSubscriptionAttempt} from '@dot-bridge/core/channels/status.js';
 
 export const EVENT_NAME = 'qq.message.created';
 const argsSchema = { type: 'object', properties: { conversation: { type: 'string', const: 'owner' } }, required: ['conversation'], additionalProperties: false };
@@ -38,7 +40,15 @@ export class Bridge {
     return ownerConfigured(this.config) && !!this.config.callbackHosts.length && this.callbackTransport().ready;
   }
   callbackTransport() { return callbackTransportStatus(this.send); }
-  setup(url) { return checkSetup(this.config, url, this.callbackTransport()); }
+  runtimeStatus() {
+    return inspectLegacyRuntimeStatus(this.store,{principal:this.config.principal,now:this.clock(),callbackHosts:this.config.callbackHosts,bindingReady:ownerConfigured(this.config),
+      gatewayConnected:this.gatewayConnected?.(),wrongSettingPresent:this.config.callbackWrongSettingPresent,
+      callbackAllowed:sub=>{destinationUrl(sub.url,this.config.callbackHosts);return true;}});
+  }
+  setup(url) {
+    const result=checkSetup(this.config,url,this.callbackTransport());
+    return this.config.authMode==='tunnel-service'&&!this.config.tunnelServiceReadinessOnly?{...result,...this.runtimeStatus()}:result;
+  }
   // Called only after raw Webhook verification, or by the authenticated TLS Gateway adapter.
   acceptQq(payload, replayId, checkpoint) {
     if (this.config.tunnelServiceReadinessOnly) return 'ignored';
@@ -58,6 +68,10 @@ export class Bridge {
     return `sub_${hash(canonical({ principal, url, name, arguments: args }))}`;
   }
   async subscribe(params, principal) {
+    const diagnostics=legacySubscriptionDiagnostics(this.store);
+    return trackSubscriptionAttempt(params,d=>this.subscribeVerified(params,principal,d),{clock:this.clock,...diagnostics});
+  }
+  async subscribeVerified(params, principal, diagnostic) {
     object(params, ['name', 'arguments', 'delivery', 'cursor', 'ttlMs', '_meta'], ['name', 'arguments', 'delivery']);
     if (!ownerConfigured(this.config)) throw new BridgeError('Owner binding is incomplete; call check_bridge_setup', { code: -32012, data: this.setup() });
     this.eventArgs(params.name, params.arguments);
@@ -66,14 +80,17 @@ export class Bridge {
     if (params.cursor !== undefined && params.cursor !== null) throw new BridgeError('Event replay cursors are unsupported', { code: -32014, data: { feature: 'cursor' } });
     if (params.ttlMs !== undefined && params.ttlMs !== null && (!Number.isSafeInteger(params.ttlMs) || params.ttlMs <= 0)) throw new BridgeError('Invalid ttlMs');
     string(params.delivery.url, 2048);
+    diagnostic.stage='policy';
     const setup = this.setup(params.delivery.url);
     if (setup.callback_policy !== 'allowlisted') throw new BridgeError('Callback is unapproved or invalid; call check_bridge_setup and review the hostname', {
       code: setup.callback_policy === 'invalid_url' ? -32602 : -32012, data: setup });
     destinationUrl(params.delivery.url, this.config.callbackHosts);
+    diagnostic.stage='transport';
     if (!setup.callback_transport.ready) throw callbackTransportFailure({ code: setup.callback_transport.reason }, this.send);
     webhookKey(params.delivery.secret);
     const now = this.clock(), id = this.subscriptionId(principal.id, params.delivery.url, params.name, params.arguments);
     const expectedEpoch = this.store.subscriptionEpoch();
+    diagnostic.stage='persist';
     const existing = this.store.subscription(id), active = this.store.activeSubscription(now);
     if (active && active.id !== id) throw new BridgeError('Unsubscribe the current dot before subscribing another', { code: -32013, data: { limit: 'subscriptions', max: 1 } });
     const lifetime = params.ttlMs === null || params.ttlMs === undefined ? this.config.subscriptionTtlMs : Math.min(params.ttlMs, this.config.subscriptionTtlMs);
@@ -89,6 +106,7 @@ export class Bridge {
       catch { throw callbackTransportFailure({ code: 'host_not_allowed' }, this.send); }
     };
     let verifiedUntil = existing?.verified_until ?? 0;
+    diagnostic.stage='challenge';
     if (!existing?.active || existing.secret !== params.delivery.secret || verifiedUntil <= now) {
       const challenge = randomBytes(32).toString('base64url'), body = Buffer.from(JSON.stringify({ type: 'verification', challenge }));
       const subscription = { id, secret: params.delivery.secret };
@@ -111,6 +129,7 @@ export class Bridge {
     const rotation = existing?.secret !== params.delivery.secret && existing?.active ?
       { oldSecret: existing.secret, oldSecretUntil: this.clock() + 300000 } :
       { oldSecret: existing?.oldSecret, oldSecretUntil: existing?.oldSecretUntil };
+    diagnostic.stage='persist';
     this.store.saveSubscription({ id, principal: principal.id, url: params.delivery.url, secret: params.delivery.secret,
       expires, verified_until: verifiedUntil, ...rotation }, this.clock(), expectedEpoch);
     return { id, refreshBefore: new Date(expires).toISOString(), cursor: null, truncated: false };

@@ -1,4 +1,5 @@
 import { checkedOptions, normalizeRequesterOptions } from './requester-options.js';
+import {MAX_MEDIA_BYTES} from '@dot-bridge/core/channels/media.js';
 import { configuredProviderProxy, makeProviderRequester } from './provider-network.js';
 import https from 'node:https';
 import { lookup as dnsLookup } from 'node:dns/promises';
@@ -101,7 +102,7 @@ export function makePublicRequester(options = {}) {
   // transport/proxy policy with a separate bounded response budget, lazily.
   let resourceSend;
   send.resourceRequester = (...args) => {
-    resourceSend ??= makePublicRequester({ ...options, maxBytes: 8 * 1024 * 1024, callbackMaxBytes, timeoutMs: 6000, providerTimeoutMs: 6000 });
+    resourceSend ??= makePublicRequester({ ...options, maxBytes: MAX_MEDIA_BYTES, callbackMaxBytes, timeoutMs: 6000, providerTimeoutMs: 6000 });
     return resourceSend(...args);
   };
   return send;

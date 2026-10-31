@@ -1,4 +1,5 @@
 // One wire contract is used by the QQ backend and its explicit core adapter.
+import {MAX_MEDIA_BYTES} from '@dot-bridge/core/channels/media.js';
 export const idSchema = { type: 'string', minLength: 1, maxLength: 256 };
 export const voiceMetadataSchema = { type: 'array', maxItems: 10, items: { type: 'object', properties: {
   index: { type: 'integer', minimum:0,maximum:9 }, type: { type: 'string', enum:['image','audio','file'] },
@@ -25,7 +26,7 @@ export const qqToolDefinitions = [
     inputSchema: input({ attachment_index: { type: 'integer', minimum: 0, maximum: 9 } }, ['message_id', 'attachment_index']),
     outputSchema: { type: 'object', properties: {
       message_id: idSchema, attachment_index: { type: 'integer', minimum:0,maximum:9 }, type: { type: 'string', enum:['image','audio','file'] },
-      mime_type: { type: 'string', enum: ['audio/wav', 'audio/mpeg', 'audio/ogg','image/png','image/jpeg','image/webp','image/gif','application/octet-stream'] }, size: { type: 'integer', minimum: 1, maximum: 8388608 },
+      mime_type: { type: 'string', enum: ['audio/wav', 'audio/mpeg', 'audio/ogg','image/png','image/jpeg','image/webp','image/gif','application/octet-stream'] }, size: { type: 'integer', minimum: 1, maximum: MAX_MEDIA_BYTES },
       extracted_text: { type: 'string', minLength: 1, maxLength: 12000 }, extraction_status: { type: 'string', enum: ['complete', 'unsupported'] }
     }, required: ['message_id', 'attachment_index', 'type', 'mime_type', 'size'], additionalProperties: false }, annotations: annotations(true) },
   { name: 'reply_to_qq', title: 'Reply to the same QQ private chat',
