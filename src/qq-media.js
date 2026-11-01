@@ -8,6 +8,17 @@ export const QQ_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const QQ_UPLOAD_BASE64 = Math.ceil(QQ_UPLOAD_BYTES / 3) * 4;
 export const QQ_RETAINED_MEDIA_BYTES = 64 * 1024 * 1024;
 export const QQ_MEDIA_TYPES = ['image', 'audio', 'file'];
+export function validateQqAttachmentReply(args){
+  object(args,['message_id','attachment_index','type'],['message_id','attachment_index']);string(args.message_id,256);
+  if(!Number.isSafeInteger(args.attachment_index)||args.attachment_index<0||args.attachment_index>9||(args.type!==undefined&&!QQ_MEDIA_TYPES.includes(args.type)))throw new BridgeError('Invalid QQ source attachment request');
+  return {...args};
+}
+export function sourceReplyName(item,mime){
+  const extension={'image/png':'.png','image/jpeg':'.jpg','audio/wav':'.wav','audio/silk':'.silk','audio/mpeg':'.mp3','audio/ogg':'.ogg'}[mime]??'.bin';
+  const raw=(typeof item.name==='string'&&item.name?item.name.split(/[\\/]/u).at(-1):'')||'attachment'+extension;
+  const name=raw.replace(/[\u0000-\u001f\u007f"\\/]/gu,'_').slice(0,128).toWellFormed();
+  return name&&name!=='.'&&name!=='..'?name:'attachment'+extension;
+}
 export function imageMime(bytes) {
   if(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'image/png';
   if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';
@@ -65,10 +76,10 @@ export async function prepareQqUpload(plan,{authorize=()=>{}}={}){
 }
 export function createMediaReader(send) {
   const readVoice=createVoiceReader(send);let active=0;
-  return async(message,index,authorize)=>{
+  return async(message,index,authorize,options={})=>{
     authorize();const item=message.attachments?.[index];
     if(!Number.isSafeInteger(index)||index<0||index>9||!item)throw new BridgeError('QQ attachment unavailable');
-    if(item.type==='audio')return readVoice({...message,attachments:[item]},0,authorize);
+    if(item.type==='audio')return readVoice({...message,attachments:[item]},0,authorize,options);
     if(!['image','file'].includes(item.type)||!item.urls?.length)throw new BridgeError('QQ attachment unavailable');
     if(active>=2)throw new BridgeError('QQ attachment reader busy',{status:429,retryable:true});active++;
     let bytes;

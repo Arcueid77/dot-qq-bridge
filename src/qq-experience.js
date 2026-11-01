@@ -136,8 +136,23 @@ export class QqExperience {
   defer(job, at) {
     this.store.run("UPDATE jobs SET state='pending',attempts=attempts-1,next_at=?,lease_until=NULL,lease_token=NULL WHERE id=? AND lease_token=?", at, job.id, job.lease_token);
   }
-  queueMedia(args,principal,now) {
-    const plan=validateQqMedia(args),id=args.message_id;
+  sourceAttachmentStatus(id,digest,principal,now){
+    if(this.bridge.config.bridgeMode==='sites')throw new BridgeError('QQ media replies require the Tunnel runtime');
+    this.store.authorizeMessage(id,principal,now);
+    if(this.store.get('SELECT message_id FROM qq_streams WHERE message_id=?',id))throw new BridgeError('Finish the existing QQ text stream before using media in a new message');
+    const previous=this.store.get('SELECT digest FROM replies WHERE message_id=?',id);
+    if(!previous)return undefined;
+    if(this.store.get('SELECT format FROM qq_reply_options WHERE message_id=?',id)?.format!=='media')throw new BridgeError('This message already has a different reply');
+    let plan;try{plan=JSON.parse(this.store.replyText(id));}catch{throw new BridgeError('Source attachment reply is unavailable');}
+    if(plan.sourceAttachmentDigest!==digest)throw new BridgeError('This message already has a different reply');
+    return this.store.replyStatus(id);
+  }
+  queueMedia(args,principal,now,sourceAttachmentDigest) {
+    if(sourceAttachmentDigest!==undefined){
+      if(typeof sourceAttachmentDigest!=='string'||!/^[a-f0-9]{64}$/.test(sourceAttachmentDigest))throw new BridgeError('Invalid source attachment reference');
+      const previous=this.sourceAttachmentStatus(args.message_id,sourceAttachmentDigest,principal,now);if(previous)return previous;
+    }
+    const plan={...validateQqMedia(args),...(sourceAttachmentDigest?{sourceAttachmentDigest}:{})},id=args.message_id;
     if(this.bridge.config.bridgeMode==='sites')throw new BridgeError('QQ media replies require the Tunnel runtime');
     this.store.authorizeMessage(id,principal,now);
     if(this.store.get('SELECT message_id FROM qq_streams WHERE message_id=?',id))throw new BridgeError('Finish the existing QQ text stream before using media in a new message');
@@ -171,7 +186,7 @@ export class QqExperience {
         if(!plan.fileInfo){
           validateQqMedia({message_id:id,type:plan.type,name:plan.name,mime_type:plan.mimeType,data:plan.data});
           const uploaded=await this.bridge.qq.uploadMedia(message,plan,{authorize});
-          plan={type:plan.type,name:plan.name,mimeType:plan.mimeType,...uploaded};
+          plan={type:plan.type,name:plan.name,mimeType:plan.mimeType,...uploaded,...(plan.sourceAttachmentDigest?{sourceAttachmentDigest:plan.sourceAttachmentDigest}:{})};
           this.store.run('UPDATE replies SET text=? WHERE message_id=?',this.store.vault.seal(JSON.stringify(plan),`reply:${id}`),id);
         }
         const outbound=await this.bridge.qq.sendMedia(message,plan,{msgSeq:options.msg_seq,authorize});

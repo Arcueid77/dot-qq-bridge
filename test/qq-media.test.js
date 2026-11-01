@@ -28,6 +28,72 @@ test('readiness exposes only actual binding, subscription and Gateway booleans',
   f.app.bridge.store.unsubscribe(f.app.bridge.store.activeSubscription(f.now()).id);assert.equal((await fetch(f.origin+'/readyz')).status,503);
 });
 
+test('source attachment reply reads one bound image and preserves its reference after upload',async t=>{
+  let reads=0,uploads=0;const f=await harness({sendOverride:async(url)=>{
+    if(url.startsWith(cdn)){reads++;return{status:200,body:Buffer.from(png)};}
+    if(url.endsWith('/files')){uploads++;return ack();}
+  }});t.after(f.close);
+  await received(f,qqPayload(f.now(),{attachments:[{content_type:'image/png',filename:'source.png',url:cdn+'/image?private=fixture'}]}));
+  const args={attachment_index:0};assert.equal((await tool(f,'reply_qq_attachment',args)).body.result.structuredContent.status,'pending');
+  await f.app.bridge.tick();assert.equal(f.sends.length,1);assert.equal(reads,1);assert.equal(uploads,1);
+  assert.equal((await tool(f,'reply_qq_attachment',{...args,type:'image'})).body.result.structuredContent.status,'sent');
+  await f.app.bridge.tick();assert.equal(reads,1);assert.equal(uploads,1);assert.equal(f.sends.length,1);
+  assert.equal((await tool(f,'reply_qq_attachment',{...args,type:'file'})).status,400);
+  assert.equal(JSON.stringify((await tool(f,'reply_qq_attachment',args)).body).includes('private=fixture'),false);
+});
+
+test('forwarding a source voice preserves validated SILK instead of decoding and re-encoding it',async t=>{
+  const encoded=await prepareQqUpload({type:'audio',name:'voice.wav',mimeType:'audio/wav',data:wav().toString('base64')});
+  let upload;const f=await harness({sendOverride:async(url,options)=>{
+    if(url.startsWith(cdn))return{status:200,body:Buffer.from(encoded.data,'base64')};
+    if(url.endsWith('/files')){upload=JSON.parse(options.body);return ack();}
+  }});t.after(f.close);
+  await received(f,qqPayload(f.now(),{attachments:[{content_type:'audio/silk',url:cdn+'/voice'}]}));
+  assert.equal((await tool(f,'reply_qq_attachment',{attachment_index:0})).status,200);await f.app.bridge.tick();
+  assert.equal(upload.file_type,3);assert.equal(upload.file_data,encoded.data);assert.equal(f.sends.length,1);
+});
+
+test('source reply refuses routing fields and cannot queue after revocation during a download',async t=>{
+  let reads=0,downloads=[];let f;
+  f=await harness({sendOverride:async url=>{
+    if(url.startsWith(cdn)){
+      reads++;f.app.bridge.store.unsubscribe(f.app.bridge.store.activeSubscription(f.now()).id);
+      const bytes=Buffer.from(png);downloads.push(bytes);return{status:200,body:bytes};
+    }
+  }});t.after(f.close);
+  await received(f,qqPayload(f.now(),{attachments:[{content_type:'image/png',url:cdn+'/image'}]}));
+  for(const extra of [{recipient:'other'},{url:cdn+'/other'},{source_message_id:'other'},{attachment_index:9}])assert.notEqual((await tool(f,'reply_qq_attachment',{attachment_index:0,...extra})).status,200);
+  assert.equal(reads,0);assert.notEqual((await tool(f,'reply_qq_attachment',{attachment_index:0})).status,200);
+  assert.equal(reads,1);assert.equal(f.sends.length,0);assert.equal(f.app.bridge.store.get('SELECT count(*) AS n FROM replies').n,0);
+  assert.ok(downloads.every(bytes=>bytes.every(n=>n===0)));
+});
+
+test('uncertain source attachment retry after reopening SQLite neither downloads nor sends again',async t=>{
+  const dir=privateMkdtempSync(path.join(os.tmpdir(),'qq-source-media-'));let f,reads=0,uploads=0,sends=0;
+  t.after(async()=>{await f?.close();assert.equal(path.dirname(path.resolve(dir)),path.resolve(os.tmpdir()));assert.ok(path.basename(dir).startsWith('qq-source-media-'));fs.rmSync(dir,{recursive:true,force:true});});
+  const dbPath=path.join(dir,'bridge.sqlite'),sendOverride=async url=>{
+    if(url.startsWith(cdn)){reads++;return{status:200,body:Buffer.from(png)};}
+    if(url.endsWith('/files')){uploads++;return ack();}
+    if(url.endsWith('/messages')){sends++;throw Error('synthetic lost acknowledgement');}
+  };
+  f=await harness({dbPath,sendOverride});await received(f,qqPayload(f.now(),{attachments:[{content_type:'image/png',filename:'a.png',url:cdn+'/image'}]}));
+  await tool(f,'reply_qq_attachment',{attachment_index:0});await f.app.bridge.tick();assert.equal(f.app.bridge.store.replyStatus(id).status,'uncertain');
+  await f.close();f=await harness({dbPath,sendOverride});
+  assert.equal((await tool(f,'reply_qq_attachment',{attachment_index:0})).body.result.structuredContent.status,'uncertain');await f.app.bridge.tick();
+  assert.equal(reads,1);assert.equal(uploads,1);assert.equal(sends,1);
+});
+
+test('QQ text file excerpts remain bounded, explicitly truncated and bound to the original binary result',async t=>{
+  const source='a'.repeat(11999)+'🙂more';
+  const f=await harness({sendOverride:async url=>url.startsWith(cdn)?{status:200,body:Buffer.from(source)}:undefined});t.after(f.close);
+  await received(f,qqPayload(f.now(),{attachments:[{content_type:'text/plain',filename:'note.txt',url:cdn+'/file'}]}));
+  const call={name:'get_qq_attachment',arguments:{message_id:id,attachment_index:0}};
+  const raw=(await tool(f,call.name,{attachment_index:0})).body.result;
+  assert.equal(raw.structuredContent.extraction_status,'truncated');assert.equal(raw.structuredContent.extracted_text,'a'.repeat(11999));
+  const projected=projectToolResult(call,raw,true);assert.equal(Buffer.from(projected.content[1].resource.blob,'base64').toString(),source);
+  const bad=structuredClone(raw);bad.structuredContent.extraction_status='unsupported';assert.throws(()=>projectToolResult(call,bad,true));
+});
+
 test('owner image and file events persist private links while exposing only indexed metadata and bound MCP bytes',async t=>{
   const f=await harness({sendOverride:async(url,options)=>{
     if(url.startsWith(cdn)){assert.equal(options.method,'GET');assert.equal(options.headers.Authorization,undefined);return{status:200,body:Buffer.from(url.includes('/image')?png:Buffer.from('synthetic document'))};}

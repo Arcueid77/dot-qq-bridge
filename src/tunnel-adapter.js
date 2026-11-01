@@ -1,7 +1,7 @@
 import { object, BridgeError, RICH_TOOL_RESULT } from '@dot-bridge/core/router/common.js';
 import { QQ_AUDIO_BYTES, QQ_AUDIO_BASE64, QQ_AUDIO_MIMES, audioMime } from './qq-audio.js';
 import {MEDIA_RPC_LIMIT} from '@dot-bridge/core/channels/media.js';
-import {imageMime,validateQqMedia} from './qq-media.js';
+import {imageMime,validateQqMedia,validateQqAttachmentReply} from './qq-media.js';
 import {hash} from './common.js';
 import { record, unavailable, callbackUrl, boundedString, iso, projectStatus, projectPendingMessage } from '@dot-bridge/core/router/live-contract.js';
 import { projectCallbackTransportStatus } from '@dot-bridge/core/transport';
@@ -69,8 +69,8 @@ export function projectToolResult(call,result,live) {
       try { if(bytes.length!==value.size || bytes.toString('base64')!==encoded || (value.type==='audio'&&audioMime(bytes)!==value.mime_type) || (value.type==='image'&&imageMime(bytes)!==value.mime_type))throw unavailable(); }
       finally { bytes.fill(0); }
       if(value.extracted_text!==undefined)boundedString(value.extracted_text,12000,{multiline:true});
-      if(value.extraction_status!==undefined&&!['complete','unsupported'].includes(value.extraction_status))throw unavailable();
-      if((value.extraction_status==='complete')!==(typeof value.extracted_text==='string'))throw unavailable();
+      if(value.extraction_status!==undefined&&!['complete','unsupported','truncated'].includes(value.extraction_status))throw unavailable();
+      if(['complete','truncated'].includes(value.extraction_status)!==(typeof value.extracted_text==='string')||(value.type==='image'&&value.extracted_text!==undefined))throw unavailable();
       const projected={message_id:value.message_id,attachment_index:value.attachment_index,type:value.type,mime_type:value.mime_type,size:value.size,...(value.extraction_status?{extraction_status:value.extraction_status}:{}),...(value.extracted_text?{extracted_text:value.extracted_text}:{})};
       return {[RICH_TOOL_RESULT]:true,value:projected,content:[{type:'text',text:JSON.stringify(projected)},content]};
     }
@@ -103,11 +103,12 @@ export const qqAdapter=Object.freeze({
  id:'qq',envPrefix:'QQ',defaultPort:8787,serviceKeyNewline:false,readinessTool,liveReadinessTool:liveSetupTool,
  backendSetupTool:liveSetupTool,readinessBackendTools:[readinessTool],liveTools:qqToolDefinitions,event:qqEvent,scopes:['owner'],
  limits:{request:32768,response:32768,body:32768,
-   bodyTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT},timeouts:{get_qq_attachment:45000}},
+    bodyTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT},timeouts:{get_qq_attachment:45000,reply_qq_attachment:45000}},
  validateToolArguments(name,args,live){
   if(name==='check_bridge_setup'){object(args,live?['callback_url']:[]);if(args.callback_url!==undefined)callbackUrl(args.callback_url);return {...args};}
   if(!live)throw new BridgeError('Operation is not enabled for this channel',{status:403,code:-32012});
   if(name==='reply_qq_media'){validateQqMedia(args);return {...args};}
+   if(name==='reply_qq_attachment')return validateQqAttachmentReply(args);
   const fields={get_qq_message:['message_id'],get_qq_attachment:['message_id','attachment_index'],begin_qq_reply:['message_id'],get_qq_context:['message_id','limit'],
     reply_to_qq:['message_id','text','format'],append_qq_reply:['message_id','sequence','text']}[name];
   if(!fields)throw unavailable();

@@ -6,6 +6,9 @@ Connect an official QQ bot's owner-only private chat to your existing OpenAI dot
 
 Clone only this repository. A pinned `@dot-bridge/core` distribution is included in `vendor/`; neither Feishu nor core source checkouts are required.
 
+
+Received attachments can be reused by their source-message index, without copying Base64 through the model. Platform format, size and media-configuration limits still apply. Plain UTF-8 and BOM-marked UTF-16 documents include bounded text excerpts; truncated excerpts are explicitly marked and the original file remains available.
+
 ## Capabilities
 
 - Owner C2C text, images, voice and files, retained context, Markdown and answers up to 30000 characters.

@@ -9,8 +9,9 @@ import { assertApprovedTunnelLive, validateTunnelServiceOperation } from './tunn
 import { callbackTransportStatus, callbackTransportFailure } from './callback-transport.js';
 import { qqToolDefinitions } from './qq-contract.js';
 import { QqExperience } from './qq-experience.js';
-import {createMediaReader,mediaMetadata} from './qq-media.js';
+import {createMediaReader,mediaMetadata,validateQqAttachmentReply,sourceReplyName} from './qq-media.js';
 import { transcribeAudio } from '@dot-bridge/core/audio';
+import {extractDocumentText} from '@dot-bridge/core/channels/documents.js';
 import {inspectLegacyRuntimeStatus,legacySubscriptionDiagnostics} from '@dot-bridge/core/channels/legacy-status.js';
 import {trackSubscriptionAttempt} from '@dot-bridge/core/channels/status.js';
 
@@ -35,6 +36,23 @@ export class Bridge {
     this.experience = new QqExperience(this);
     this.readVoice = createMediaReader(send);
     this.running = false;
+  }
+  async replyAttachment(raw,principal){
+    const args=validateQqAttachmentReply(raw);
+    const authorize=()=>{
+      const current=this.store.authorizeMessage(args.message_id,principal.id,this.clock());
+      if(principal.validUntil<=this.clock()||current.expires<=this.clock()||current.text===null)throw new BridgeError('QQ attachment authorization expired',{code:-32012});
+      return current;
+    };
+    const source=authorize(),item=source.attachments[args.attachment_index],type=args.type??item?.type;
+    if(!item||!['image','audio','file'].includes(item.type)||!['image','audio','file'].includes(type))throw new BridgeError('QQ source attachment unavailable');
+    const digest=hash(JSON.stringify({kind:'source_attachment',index:args.attachment_index,type}));
+    const previous=this.experience.sourceAttachmentStatus(source.id,digest,principal.id,this.clock());if(previous)return previous;
+    const media=await this.readVoice(source,args.attachment_index,authorize,{forReply:true});
+    try{
+      authorize();
+      return this.experience.queueMedia({message_id:source.id,type,name:sourceReplyName(item,media.mime),mime_type:media.mime,data:media.bytes.toString('base64')},principal.id,this.clock(),digest);
+    }finally{media.bytes.fill(0);}
   }
   ready() {
     return ownerConfigured(this.config) && !!this.config.callbackHosts.length && this.callbackTransport().ready;
@@ -189,7 +207,7 @@ export class Bridge {
           const source = authorize(), media = await this.readVoice(source, index, authorize);
           try {
             const type=source.attachments[index].type;
-            const extracted = type==='audio'?(source.attachments[index]?.transcript ? { extracted_text: source.attachments[index].transcript, extraction_status: 'complete' } : await transcribeAudio(media.bytes, { authorize, deadline })):{};
+            const extracted = type==='audio'?(source.attachments[index]?.transcript ? { extracted_text: source.attachments[index].transcript, extraction_status: 'complete' } : await transcribeAudio(media.bytes, { authorize, deadline })):type==='file'?extractDocumentText(media.bytes,{mimeType:media.mime}):{};
             authorize();
             const value = { message_id: params.arguments.message_id, attachment_index: index, type, mime_type: media.mime, size: media.bytes.length, ...extracted };
             const data=media.bytes.toString('base64');
@@ -202,6 +220,7 @@ export class Bridge {
           return toolResult(this.experience.queueReply(params.arguments.message_id, params.arguments.text, principal.id, this.clock(), params.arguments.format));
         }
         if (params.name === 'reply_qq_media') return toolResult(this.experience.queueMedia(params.arguments,principal.id,this.clock()));
+        if (params.name === 'reply_qq_attachment') return toolResult(await this.replyAttachment(params.arguments,principal));
         if (params.name === 'begin_qq_reply') {
           object(params.arguments, ['message_id'], ['message_id']); string(params.arguments.message_id, 256);
           return toolResult(this.experience.begin(params.arguments.message_id, principal.id, this.clock()));

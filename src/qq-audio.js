@@ -1,4 +1,5 @@
 import {createSilkDecoder} from '@dot-bridge/core/audio/silk.js';
+import {isSilk} from 'silk-wasm';
 import {MAX_MEDIA_BYTES,MAX_MEDIA_BASE64} from '@dot-bridge/core/channels/media.js';
 import { BridgeError, plainText } from './common.js';
 import { destinationUrl } from './network.js';
@@ -63,7 +64,7 @@ export async function decodeVoice(input,options={}) {
 
 export function createVoiceReader(send) {
   let active = 0;
-  return async (message, index, authorize) => {
+  return async (message, index, authorize, {forReply=false}={}) => {
     authorize();
     const item = message.attachments?.[index];
     if (index !== 0 || !item || !item.urls.length) throw new BridgeError('QQ voice audio unavailable; use its reference transcript or ask the sender for text');
@@ -82,7 +83,16 @@ export function createVoiceReader(send) {
           input = response.body;
           authorize();
           if (response.status !== 200 || (response.headers?.['content-encoding'] && response.headers['content-encoding'] !== 'identity')) throw new BridgeError('QQ voice resource unavailable');
-          decoded = await decodeVoice(input);
+          if(forReply){
+            if(!Buffer.isBuffer(input)||!input.length||input.length>QQ_AUDIO_BYTES)throw new BridgeError('QQ voice size refused');
+            const payload=input.subarray(input.toString('ascii',0,6)==='#!AMR\n'?6:0);
+            const mime=audioMime(input)??(isSilk(payload)?'audio/silk':null);
+            if(!mime)throw new BridgeError('QQ source audio format unavailable');
+            if(mime==='audio/silk'){
+              const check=await decodeVoice(payload);try{authorize();}finally{check.bytes.fill(0);}
+            }
+            decoded={bytes:Buffer.from(mime==='audio/silk'?payload:input),mime};
+          }else decoded = await decodeVoice(input);
           authorize();
           return decoded;
         } catch (error) {
