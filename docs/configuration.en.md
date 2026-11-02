@@ -96,3 +96,15 @@ Set these in the backend environment file, not the router environment:
 | `MAX_DELIVERY_ATTEMPTS` | 5 | Bounded attempts, never permission to resend an uncertain reply |
 
 QQ text retention is seven days in code. A retained context record does not extend QQ's passive-reply window or authorize a proactive send.
+
+## Owner proactive text and saved reminders
+
+The private backend setting `DOT_BRIDGE_OUTBOUND=owner-text` enables this optional capability; its default is `disabled`. Only live `tunnel-service` with standard callback transport may enable it. Update/restart the QQ backend and router together, then refresh the original plugin catalog. Keep the original pairing, storage key, database and event subscription.
+
+Tencent's [official SDK](https://github.com/tencent-connect/qqbot-nodejs/blob/main/USAGE.md) documents C2C proactive requests, while the [platform documentation](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/send-receive/send.md) retains a suspension notice effective 2025-04-21. Verify the actual application's eligibility and quota before enabling. `check_qq_outbound` reports implementation support, local opt-in and observed gateway state. Application eligibility and remaining quota come from the platform and actual results; synthetic tests establish neither.
+
+The recipient comes solely from protected owner credentials. Proactive requests contain no old message ID, event ID or passive sequence. They work independently of the incoming subscription and gateway; ordinary incoming messages still require the original dot subscription.
+
+Tools: `check_qq_outbound`, `send_qq_message`, `schedule_qq_message`, `list_qq_scheduled_messages`, `get_qq_outbound`, `update_qq_scheduled_message`, and `cancel_qq_scheduled_message`. Literal reminders support once/daily/weekly scheduling, explicit offsets and IANA timezones, at most 2000 characters and a one-year recurring end. Generated content requires a real task saved on the original dot.
+
+Explicit permission/quota rejection persists as `rejected` with `provider_permission_denied`, `provider_quota_exhausted`, or `provider_rejected` and pauses recurrence. Timeouts, malformed/lost ACKs and 5xx remain `uncertain`; restart and identical requests never resend them. Preserve original encrypted state, review platform/chat results before further action, and use compatible backend/router/core versions for rollback. Disabling outbound holds future sends without changing passive replies; missed reminders beyond five minutes are skipped after downtime.

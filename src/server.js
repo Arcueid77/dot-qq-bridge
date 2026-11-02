@@ -170,7 +170,7 @@ export function createApp(config, { clock = Date.now, send, worker = true, appro
         await gateway?.stop();
         await listenPromise?.catch(() => {});
         await new Promise(resolve => server.close(resolve));
-        await lastTick; bridge.store.close();
+        await lastTick; await bridge.outbox.close(); bridge.store.close();
       })();
       return closePromise;
     }

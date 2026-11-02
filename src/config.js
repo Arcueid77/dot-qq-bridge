@@ -12,11 +12,12 @@ function number(env, key, fallback, min, max) {
   return value;
 }
 export function readConfig(env = process.env) {
-  if(outboundEnabled(env))throw new Error('Independent proactive QQ sending is not enabled by this adapter');
+  const ownerOutbound = outboundEnabled(env);
   const mode = env.AUTH_MODE || 'deny';
   const operation = env.TUNNEL_SERVICE_OPERATION || 'readiness';
   if (!['deny', 'dev', 'oauth', 'sites', 'tunnel-service'].includes(mode)) throw new Error('Invalid AUTH_MODE');
   const config = {
+    outboundEnabled: ownerOutbound,
     bridgeMode: env.BRIDGE_MODE || 'tunnel',
     sitesOrigin: env.SITES_ORIGIN || '', sitesBindingId: env.SITES_BINDING_ID || '',
     sitesPlatformToken: env.SITES_SERVICE_CREDENTIAL || '', sitesConnectorToken: env.SITES_CONNECTOR_CREDENTIAL || '',

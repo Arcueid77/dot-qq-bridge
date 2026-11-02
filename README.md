@@ -39,6 +39,6 @@
 
 ## 定时消息
 
-本版本暂不开放本渠道的独立主动推送。仍可从已绑定的本人私聊请求原 dot，安排向其他已启用渠道发送固定提醒；不会复用过期回复窗口或会话令牌来绕过限制。
+QQ 已接入本人主动文字和固定提醒，默认关闭。核实应用具备平台资格及额度后，在 QQ 后端设置 `DOT_BRIDGE_OUTBOUND=owner-text`；可以立即发送，也可以按一次、每天或每周安排。仅发往原配对的本人私聊，复用原数据库和存储密钥。启用步骤、平台限制及拒绝状态见[配置说明](docs/configuration.md#主动文字与定时提醒)。
 
 详见[定时消息使用指南](https://github.com/Arcueid77/dot-bridge/blob/dev/unified-distribution/docs/scheduled-messages.md)。

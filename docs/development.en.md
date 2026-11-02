@@ -70,3 +70,5 @@ Use **Squash and merge** if one consolidated feature commit is preferable. Avoid
 ## Package interface for the distribution repository
 
 Release artifacts expose the `adapter`, `config`, `server`, `runtime/live` and `runtime/readiness` subpaths. The distribution installs pinned artifacts; provider implementation remains owned here. Packages contain runtime code, documentation and the pinned core artifact, excluding local configuration, databases and test data. These are versioned source-distribution packages, not yet published to the npm registry.
+
+QQ owner notifications reuse the durable outbox in core 0.9.0. `test/owner-outbound.test.js` covers default denial, sends without an inbound subscription, restart recovery, editing/cancellation, response budgets, explicit rejection and unknown ACKs. The actual sibling QQ/Lark catalog integration is in `packages/dot-bridge-tunnel/test/sibling-contract.test.js`. Explicit rejection persists as `rejected` and pauses recurrence; unknown outcomes remain `uncertain`. These synthetic checks do not establish actual QQ application eligibility, quota or delivery.

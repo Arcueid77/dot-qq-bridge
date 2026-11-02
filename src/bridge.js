@@ -14,7 +14,8 @@ import { transcribeAudio } from '@dot-bridge/core/audio';
 import {extractDocumentText} from '@dot-bridge/core/channels/documents.js';
 import {inspectLegacyRuntimeStatus,legacySubscriptionDiagnostics} from '@dot-bridge/core/channels/legacy-status.js';
 import {trackSubscriptionAttempt} from '@dot-bridge/core/channels/status.js';
-import {validateOutboundArguments,OUTBOUND_INSTRUCTIONS} from '@dot-bridge/core/channels/outbound.js';
+import {OwnerOutbox,isOutboundTool,OUTBOUND_INSTRUCTIONS} from '@dot-bridge/core/channels/outbound.js';
+import {BridgeError as CoreBridgeError} from '@dot-bridge/core/router/common.js';
 
 export const EVENT_NAME = 'qq.message.created';
 const argsSchema = { type: 'object', properties: { conversation: { type: 'string', const: 'owner' } }, required: ['conversation'], additionalProperties: false };
@@ -34,6 +35,8 @@ export class Bridge {
     store ??= new Store(config);
     this.config = config; this.clock = clock; this.send = send; this.store = store;
     this.qq = createQqClient(config, send, clock); this.sendQq = this.qq.sendReply;
+    this.outbox = new OwnerOutbox({channel:'qq',db:this.store.db,seal:(value,aad)=>this.store.vault.seal(value,aad),open:(value,aad)=>this.store.vault.open(value,aad),
+      enabled:config.outboundEnabled===true,clock,available:()=>ownerConfigured(this.config),send:args=>this.qq.sendOwnerMessage(args)});
     this.experience = new QqExperience(this);
     this.readVoice = createMediaReader(send);
     this.running = false;
@@ -184,9 +187,15 @@ export class Bridge {
       case 'events/unsubscribe': return this.unsubscribe(params, principal);
       case 'tools/call': {
         object(params, ['name', 'arguments', '_meta'], ['name', 'arguments']);
-        if(params.name==='check_qq_outbound'){
-          validateOutboundArguments('qq',params.name,params.arguments);
-          return toolResult({supported:false,enabled:false,gateway_connected:this.gatewayConnected?.()===true,reason:'provider_not_supported',max_text_chars:2000,scheduling:false});
+        if(isOutboundTool('qq',params.name)){
+          let result;
+          try { result=this.outbox.call(params.name,params.arguments); }
+          catch(error) {
+            if(error instanceof CoreBridgeError)throw new BridgeError('QQ owner outbound request refused',{status:error.status,code:error.code,data:error.data});
+            throw error;
+          }
+          if(params.name==='check_qq_outbound')result.gateway_connected=this.gatewayConnected?.()===true;
+          return toolResult(result);
         }
         if (params.name === 'check_bridge_setup') {
           object(params.arguments, ['callback_url']);
@@ -250,6 +259,7 @@ export class Bridge {
     this.running = true;
     let job;
     try {
+      if (await this.outbox.tick()) return true;
       const now = this.clock();
       job = this.store.claim(now);
       if (!job) return false;

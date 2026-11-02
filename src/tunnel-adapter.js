@@ -104,8 +104,8 @@ export function projectToolResult(call,result,live) {
 export const qqAdapter=Object.freeze({
  id:'qq',envPrefix:'QQ',defaultPort:8787,serviceKeyNewline:false,readinessTool,liveReadinessTool:liveSetupTool,
  backendSetupTool:liveSetupTool,readinessBackendTools:[readinessTool],liveTools:qqToolDefinitions,event:qqEvent,scopes:['owner'],
- limits:{request:32768,response:32768,body:32768,
-    bodyTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT},timeouts:{get_qq_attachment:45000,reply_qq_attachment:45000}},
+   limits:{request:32768,response:65536,body:32768,
+     bodyTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT,list_qq_scheduled_messages:524288},timeouts:{get_qq_attachment:45000,reply_qq_attachment:45000}},
  validateToolArguments(name,args,live){
   if(name==='check_bridge_setup'){object(args,live?['callback_url']:[]);if(args.callback_url!==undefined)callbackUrl(args.callback_url);return {...args};}
   if(!live)throw new BridgeError('Operation is not enabled for this channel',{status:403,code:-32012});

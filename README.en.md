@@ -14,6 +14,7 @@ Received attachments can be reused by their source-message index, without copyin
 - Owner C2C text, images, voice and files, retained context, Markdown and answers up to 30000 characters.
 - A native input notification when processing starts, plus native updates to one reply.
 - Durable queues, deduplication and restart recovery; uncertain sends are never automatically resent.
+- Optional owner-only proactive text and once/daily/weekly reminders, reusing encrypted state. Disabled by default; verify actual QQ application eligibility and quota before enabling. See [configuration](docs/configuration.en.md#owner-proactive-text-and-saved-reminders).
 - Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 5 MiB and outgoing attachments at 5 MiB.
 - The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies require existing bytes; no text-to-speech service is included.
 - QQ groups, guilds, other members, videos and quoted messages are not supported.

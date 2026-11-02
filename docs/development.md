@@ -70,3 +70,5 @@ gh pr merge PR_NUMBER --rebase
 ## 供总仓库使用的包接口
 
 发布构建包提供 `adapter`、`config`、`server`、`runtime/live` 和 `runtime/readiness` 子路径。总仓库按固定版本安装这些构建包；平台实现仍在本仓库维护。包内只包含运行代码、说明和固定 core 构建包，不包含本机配置、数据库或测试数据。当前包用于版本化源码发行，尚未发布到 npm registry。
+
+QQ 本人主动文字和提醒复用 core 0.9.0 的持久 outbox。`test/owner-outbound.test.js` 覆盖默认关闭、无入站订阅发送、重启恢复、编辑取消、目录／列表响应预算、平台拒绝和未知 ACK；`packages/dot-bridge-tunnel/test/sibling-contract.test.js` 使用实际同级 QQ／飞书后端核对扩展目录。明确拒绝保存为 `rejected` 并暂停，其他结果不明仍为 `uncertain`。本次测试采用合成应用和网络注入，真实 QQ 账号的主动资格、额度和消息送达另行核验。

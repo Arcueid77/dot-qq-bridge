@@ -62,4 +62,18 @@ QQ 组件仍使用 `MCP_CALLBACK_ALLOWED_HOSTS`。如果误填了新渠道使用
 | `INBOUND_PER_MINUTE` / `REPLIES_PER_MINUTE` | 10 / 10 | 每分钟入站/回复限流 |
 | `MAX_DELIVERY_ATTEMPTS` | 5 | 有界尝试数，不允许重发 uncertain 回复 |
 
-QQ 正文保留期在代码中为七天；可读历史上下文不延长 QQ 被动回复窗口，也不允许主动发送。
+QQ 正文保留期在代码中为七天；可读历史上下文不延长 QQ 被动回复窗口。独立主动发送使用下一节的单独开关和真正主动消息接口。
+
+## 主动文字与定时提醒
+
+在 QQ 后端的私有环境文件设置 `DOT_BRIDGE_OUTBOUND=owner-text`，更新并重启后端和路由器，再刷新原插件工具目录。默认值为 `disabled`；只允许正式 `tunnel-service`、`live`、标准 callback 模式。使用已有配对和密钥，无需创建新 Token 或重建事件订阅。
+
+腾讯[官方 SDK](https://github.com/tencent-connect/qqbot-nodejs/blob/main/USAGE.md#94-主动-push无-msgid)保留了 C2C 主动发送示例；[平台文档](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/send-receive/send.md)仍有自 2025-04-21 起停止主动推送的公告。实际账号资格与额度需要在启用前核实。`check_qq_outbound` 返回代码能力、本机开关及实际网关状态；账号资格和剩余额度以平台及实际请求结果为准。本次代码与离线测试没有确认某个真实应用可用。
+
+主动发送仅使用凭据中的本人 openid，不带旧 `msg_id`、`event_id` 或被动 `msg_seq`；发送和保存提醒独立于入站订阅及网关连接。普通收消息仍需原 dot 的有效事件订阅。
+
+可用工具为 `check_qq_outbound`、`send_qq_message`、`schedule_qq_message`、`list_qq_scheduled_messages`、`get_qq_outbound`、`update_qq_scheduled_message`、`cancel_qq_scheduled_message`。每条最多 2000 字符，提醒支持一次、每天、每周，必须带明确时区；重复提醒必须有结束时间，最长一年。固定文字由桥持久保存并到点发送，动态生成内容由原 dot 的真实定时任务生成后调用发送工具。
+
+`pending` 为已入队，`sent` 为平台 ACK。明确权限或额度拒绝显示 `rejected`，原因分别为 `provider_permission_denied`、`provider_quota_exhausted` 或 `provider_rejected`，重复提醒随之暂停。超时、丢失或畸形 ACK、5xx 保持 `uncertain`，重启和同幂等键重试都不会再发。先核对平台与原聊天，再由本人决定后续处理。
+
+原库和原存储密钥保留提醒正文、版本及幂等状态。关闭开关会暂停后续发送；既有被动回复不受影响。服务恢复跳过超过五分钟的迟到提醒，避免集中补发。升级或回滚前检查这些新工具与队列，并保持后端、路由器、core 的版本一致。

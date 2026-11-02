@@ -1,5 +1,6 @@
 import { BridgeError, plainText, string, timestamp } from './common.js';
 import { incomingMedia, validateQqMedia,prepareQqUpload } from './qq-media.js';
+import {OutboundRejection} from '@dot-bridge/core/channels/outbound.js';
 
 export function incomingMessage(payload, config, now) {
   if (!config.ownerOpenid || !config.principal || config.authMode === 'deny') throw new BridgeError('Owner binding is not configured', { status: 503 });
@@ -104,6 +105,37 @@ export function createQqClient(config, send, clock = Date.now) {
     return sendBody(message, { ...(format === 'markdown' ? { msg_type: 2, markdown: { content: text } } : { msg_type: 0, content: text }),
       msg_id: message.id, msg_seq: msgSeq }, { authorize });
   }
+  async function sendOwnerMessage({text, idempotencyKey, authorize}) {
+    if (config.outboundEnabled !== true || !/^[a-zA-Z0-9_-]{1,128}$/.test(config.ownerOpenid ?? '') ||
+        !/^[a-f0-9]{64}$/.test(idempotencyKey ?? '') || typeof authorize !== 'function') throw new BridgeError('QQ owner notification is disabled or unbound');
+    plainText(text, 2000);
+    authorize();
+    const accessToken = await getToken();
+    authorize();
+    let response;
+    try {
+      response = await send(`${apiOrigin}/v2/users/${encodeURIComponent(config.ownerOpenid)}/messages`, {
+        purpose:'provider', hosts:[new URL(apiOrigin).hostname],
+        headers:{Authorization:`QQBot ${accessToken}`,'Content-Type':'application/json','X-Bot-Appid':config.qqAppId},
+        // A real proactive request has no source message, event ID or passive sequence.
+        body:Buffer.from(JSON.stringify({msg_type:0,content:text})), beforeConnect:authorize
+      });
+    } catch { throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true}); }
+    if (response.status === 401) { clearToken(); throw new OutboundRejection('provider_permission_denied'); }
+    if (response.status === 403) throw new OutboundRejection('provider_permission_denied');
+    if (response.status === 429) throw new OutboundRejection('provider_quota_exhausted');
+    if (response.status >= 500 || response.status === 408) throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true});
+    let data;
+    try { data=JSON.parse(response.body.toString('utf8')); } catch { throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true}); }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true});
+    const codes=[data.err_code,data.code].filter(code=>code!==undefined);
+    if (codes.some(code=>!Number.isSafeInteger(code))) throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true});
+    if (response.status < 200 || response.status >= 300 || codes.some(code=>code!==0)) {
+      throw new OutboundRejection(codes.includes(40034102) ? 'provider_permission_denied' : codes.includes(22009) ? 'provider_quota_exhausted' : 'provider_rejected');
+    }
+    if (typeof data.id !== 'string' || !data.id || data.id.length > 256) throw new BridgeError('QQ owner notification acknowledgement unknown', {uncertain:true});
+    return data.id;
+  }
   async function sendTyping(message, { msgSeq, authorize = () => {} } = {}) {
     if (!Number.isInteger(msgSeq) || msgSeq < 1 || msgSeq > 5) throw new BridgeError('Invalid QQ input sequence');
     return sendBody(message, { msg_type: 6, input_notify: { input_type: 1, input_second: 60 }, msg_id: message.id, msg_seq: msgSeq }, { authorize, typing: true });
@@ -138,7 +170,7 @@ export function createQqClient(config, send, clock = Date.now) {
     if(message?.owner!==config.ownerOpenid||typeof plan.fileInfo!=='string'||!plan.fileInfo||plan.fileInfo.length>16384||!Number.isSafeInteger(plan.uploadedExpires)||plan.uploadedExpires<=clock()||!Number.isInteger(msgSeq)||msgSeq<1||msgSeq>5)throw new BridgeError('QQ media reply binding or uploaded file expired');
     return sendBody(message,{msg_type:7,media:{file_info:plan.fileInfo},msg_id:message.id,msg_seq:msgSeq},{authorize});
   }
-  return { sendReply, sendTyping, sendStream, uploadMedia, sendMedia, gatewayInfo, clearToken };
+  return { sendReply, sendOwnerMessage, sendTyping, sendStream, uploadMedia, sendMedia, gatewayInfo, clearToken };
 }
 export function createQqSender(config, send, clock = Date.now) {
   return createQqClient(config, send, clock).sendReply;
