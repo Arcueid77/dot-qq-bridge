@@ -3,6 +3,7 @@ import { QQ_AUDIO_BYTES, QQ_AUDIO_BASE64, QQ_AUDIO_MIMES, audioMime } from './qq
 import {MEDIA_RPC_LIMIT} from '@dot-bridge/core/channels/media.js';
 import {imageMime,validateQqMedia,validateQqAttachmentReply} from './qq-media.js';
 import {hash} from './common.js';
+import {isOutboundTool,validateOutboundArguments,projectOutboundResult} from '@dot-bridge/core/channels/outbound.js';
 import { record, unavailable, callbackUrl, boundedString, iso, projectStatus, projectPendingMessage } from '@dot-bridge/core/router/live-contract.js';
 import { projectCallbackTransportStatus } from '@dot-bridge/core/transport';
 import {RUNTIME_STATUS_FIELDS,runtimeStatusProperties,projectRuntimeStatus,optionalStatusSchemaMatch} from '@dot-bridge/core/channels/status.js';
@@ -17,6 +18,7 @@ export function projectToolResult(call,result,live) {
   try {
     if (!record(result) || result.isError !== false || !record(result.structuredContent)) throw unavailable();
     const value=result.structuredContent;
+    if(live&&isOutboundTool('qq',call.name))return projectOutboundResult('qq',call,result);
     if (call.name === 'check_bridge_setup') {
       object(value,['configuration_ready','events_discoverable','missing_settings','callback_hostname','callback_policy','qq_api_profile','network_checked','next_step','callback_transport',...(live?['pending_message',...RUNTIME_STATUS_FIELDS]:[])],['configuration_ready','events_discoverable','missing_settings','callback_hostname','callback_policy','qq_api_profile','network_checked','next_step',...(live?['callback_transport']:[])]);
       const transport = value.callback_transport === undefined ? undefined : projectCallbackTransportStatus(value.callback_transport);
@@ -107,6 +109,7 @@ export const qqAdapter=Object.freeze({
  validateToolArguments(name,args,live){
   if(name==='check_bridge_setup'){object(args,live?['callback_url']:[]);if(args.callback_url!==undefined)callbackUrl(args.callback_url);return {...args};}
   if(!live)throw new BridgeError('Operation is not enabled for this channel',{status:403,code:-32012});
+  if(isOutboundTool('qq',name))return validateOutboundArguments('qq',name,args);
   if(name==='reply_qq_media'){validateQqMedia(args);return {...args};}
    if(name==='reply_qq_attachment')return validateQqAttachmentReply(args);
   const fields={get_qq_message:['message_id'],get_qq_attachment:['message_id','attachment_index'],begin_qq_reply:['message_id'],get_qq_context:['message_id','limit'],

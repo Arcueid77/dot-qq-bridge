@@ -36,3 +36,9 @@
 每个部署使用自己的应用授权、主人绑定、私有状态及 Tunnel。首次扫码、保存长期凭据、增加权限和创建订阅需要操作者参与；秘密不写入 Git、聊天或日志。所有 Tunnel Use 持有者都拥有本地服务身份的权限，因此此模式只用于私有部署。
 
 项目采用 [MIT](LICENSE)；依赖与来源见[第三方声明](THIRD_PARTY_NOTICES.md)。扫码依赖有独立的许可边界，不能用本项目许可覆盖。
+
+## 定时消息
+
+本版本暂不开放本渠道的独立主动推送。仍可从已绑定的本人私聊请求原 dot，安排向其他已启用渠道发送固定提醒；不会复用过期回复窗口或会话令牌来绕过限制。
+
+详见[定时消息使用指南](https://github.com/Arcueid77/dot-bridge/blob/dev/unified-distribution/docs/scheduled-messages.md)。

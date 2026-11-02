@@ -4,6 +4,7 @@ import { validateTunnelServiceConfig } from './tunnel-service-auth.js';
 import { readServiceKey } from './tunnel-service-auth.js';
 import { readQqCredentials } from './credential-store.js';
 import { validateTunnelServiceOperation } from './tunnel-service-operation.js';
+import {outboundEnabled} from '@dot-bridge/core/channels/outbound.js';
 
 function number(env, key, fallback, min, max) {
   const value = env[key] ? Number(env[key]) : fallback;
@@ -11,6 +12,7 @@ function number(env, key, fallback, min, max) {
   return value;
 }
 export function readConfig(env = process.env) {
+  if(outboundEnabled(env))throw new Error('Independent proactive QQ sending is not enabled by this adapter');
   const mode = env.AUTH_MODE || 'deny';
   const operation = env.TUNNEL_SERVICE_OPERATION || 'readiness';
   if (!['deny', 'dev', 'oauth', 'sites', 'tunnel-service'].includes(mode)) throw new Error('Invalid AUTH_MODE');
