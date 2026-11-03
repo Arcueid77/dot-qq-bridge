@@ -17,7 +17,7 @@ Received attachments can be reused by their source-message index, without copyin
 - Optional owner-only proactive text and once/daily/weekly reminders, reusing encrypted state. Disabled by default; verify actual QQ application eligibility and quota before enabling. See [configuration](docs/configuration.en.md#owner-proactive-text-and-saved-reminders).
 - Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 5 MiB and outgoing attachments at 5 MiB.
 - The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies require existing bytes; no text-to-speech service is included.
-- QQ groups, guilds, other members, videos and quoted messages are not supported.
+- QQ groups, guilds, other members and videos remain outside this component. When the platform supplies a quote ID, retained quoted content is resolved only within the same owner and subscription generation; missing references never fetch another conversation.
 
 ## Start here
 
@@ -37,3 +37,6 @@ Use Node.js **>=24.15 and <25** on a continuously running Linux VPS or native Wi
 Each installation uses its own app authorization, owner binding, private state and Tunnel. Scanning, persistent credential storage, new permissions and subscriptions require operator participation. Keep secrets out of Git, chats and logs. Every Tunnel Use holder receives the local service owner's authority, so this mode is for private deployments.
 
 The project uses the [MIT license](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.en.md) for dependency provenance and the scanner's separate licensing boundary.
+
+
+Shared owner IM maintenance (`/status`, `/queue`, `/subscription`, `/cancel`) preserves the existing inbox, keys and subscriptions. Optional management-only gateway connection and shared protected document extraction are described in [configuration](docs/configuration.en.md).

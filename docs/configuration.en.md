@@ -108,3 +108,8 @@ The recipient comes solely from protected owner credentials. Proactive requests 
 Tools: `check_qq_outbound`, `send_qq_message`, `schedule_qq_message`, `list_qq_scheduled_messages`, `get_qq_outbound`, `update_qq_scheduled_message`, and `cancel_qq_scheduled_message`. Literal reminders support once/daily/weekly scheduling, explicit offsets and IANA timezones, at most 2000 characters and a one-year recurring end. Generated content requires a real task saved on the original dot.
 
 Explicit permission/quota rejection persists as `rejected` with `provider_permission_denied`, `provider_quota_exhausted`, or `provider_rejected` and pauses recurrence. Timeouts, malformed/lost ACKs and 5xx remain `uncertain`; restart and identical requests never resend them. Preserve original encrypted state, review platform/chat results before further action, and use compatible backend/router/core versions for rollback. Disabling outbound holds future sends without changing passive replies; missed reminders beyond five minutes are skipped after downtime.
+
+
+## Owner private-chat management
+
+`/help`, `/status`, `/queue`, `/subscription`, and `/cancel [reference]` use core's encrypted durable control outbox. Cancellation affects unsent bridge replies and preserves inflight/uncertain states. In standard mode, explicit `DOT_BRIDGE_OWNER_MANAGEMENT=1` keeps owner management connected without an active dot subscription; ordinary messages receive subscription status. Hosted-dot stop, reset and approval remain on the original platform. See [shared maintenance](https://github.com/Arcueid77/dot-bridge/blob/main/docs/new-channels.en.md#maintenance-from-chat).

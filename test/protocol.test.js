@@ -138,7 +138,7 @@ test('no bound QQ identity, no authenticated principal or no active subscription
   const f = await harness(); t.after(f.close);
   assert.equal((await f.postQq()).status, 503);
 });
-test('only the allowlisted C2C plain-text author can enqueue; bot/attachment/reference/group events never loop', async t => {
+test('only the allowlisted C2C plain-text author can enqueue; bot/attachment/rich/group events never loop', async t => {
   const f = await harness(); t.after(f.close); await f.subscribe();
   assert.equal((await f.postQq(qqPayload(f.now(), { author: { user_openid: 'stranger' } }))).status, 403);
   for (const changes of [{ author: { user_openid: f.config.ownerOpenid, bot: true } }, { attachments: [{ url: 'https://attacker.example' }] },

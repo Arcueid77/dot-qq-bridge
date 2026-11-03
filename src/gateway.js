@@ -24,8 +24,9 @@ export class QqGateway {
     // Never emit token, session ID, payload, owner ID, URL or QQ close reason.
     try { this.report({ ...this.status(), ...(code ? { close_code: code } : {}) }); } catch { /* operator logging cannot change acceptance */ }
   }
+  allowed() {return !!(this.bridge.config.ownerManagementConnection&&this.bridge.management?.enabled&&ownerConfigured(this.bridge.config))||!!(this.bridge.ready()&&this.bridge.store.activeSubscription(this.clock()));}
   authorize() {
-    if (this.stopped || this.blocked || !this.bridge.ready() || !this.bridge.store.activeSubscription(this.clock())) {
+    if (this.stopped || this.blocked || !this.allowed()) {
       throw new BridgeError('QQ Gateway waits for an active authenticated dot subscription', { status: 503 });
     }
     this.bridge.store.assertGatewayLease(this.token, this.clock());
@@ -37,7 +38,7 @@ export class QqGateway {
       if (!this.ownsLease || this.stopped || this.blocked) return;
       try {
         if (!this.bridge.store.renewGatewayLease(this.token, this.clock())) throw new Error('lease');
-        if (this.ws && (!this.bridge.ready() || !this.bridge.store.activeSubscription(this.clock()))) this.disconnect('waiting_subscription', 5000);
+        if (this.ws && (!this.allowed())) this.disconnect('waiting_subscription', 5000);
       } catch { this.ownsLease = false; this.disconnect('waiting_lease', 5000); }
     }, 5000);
     await this.connect();
@@ -54,7 +55,7 @@ export class QqGateway {
     await this.dial;
   }
   async open() {
-    if (!this.bridge.ready() || !this.bridge.store.activeSubscription(this.clock())) {
+    if (!this.allowed()) {
       this.setPhase('waiting_subscription'); this.reconnectAfter(5000); return;
     }
     this.ownsLease = this.bridge.store.acquireGatewayLease(this.token, this.clock());

@@ -1,3 +1,5 @@
+import {legacyExperienceStatus} from '@dot-bridge/core/channels/legacy-experience-status.js';
+import {LegacyManagement} from '@dot-bridge/core/channels/legacy-management.js';
 import { randomBytes } from 'node:crypto';
 import { BridgeError, canonical, equal, hash, object, plainText, string, toolResult } from './common.js';
 import { webhookHeaders, webhookKey } from './signatures.js';
@@ -11,7 +13,7 @@ import { qqToolDefinitions } from './qq-contract.js';
 import { QqExperience } from './qq-experience.js';
 import {createMediaReader,mediaMetadata,validateQqAttachmentReply,sourceReplyName} from './qq-media.js';
 import { transcribeAudio } from '@dot-bridge/core/audio';
-import {extractDocumentText} from '@dot-bridge/core/channels/documents.js';
+import {readableDocument} from '@dot-bridge/core/channels/document-process.js';
 import {inspectLegacyRuntimeStatus,legacySubscriptionDiagnostics} from '@dot-bridge/core/channels/legacy-status.js';
 import {trackSubscriptionAttempt} from '@dot-bridge/core/channels/status.js';
 import {OwnerOutbox,isOutboundTool,OUTBOUND_INSTRUCTIONS} from '@dot-bridge/core/channels/outbound.js';
@@ -39,6 +41,10 @@ export class Bridge {
       enabled:config.outboundEnabled===true,clock,available:()=>ownerConfigured(this.config),send:args=>this.qq.sendOwnerMessage(args)});
     this.experience = new QqExperience(this);
     this.readVoice = createMediaReader(send);
+    this.management=new LegacyManagement({store:this.store,channel:'QQ',enabled:config.authMode==='tunnel-service'&&!config.tunnelServiceReadinessOnly,clock,receiveWithoutSubscription:config.ownerManagementConnection===true,
+      ownerPrivate:message=>message.owner===this.config.ownerOpenid,status:()=>this.runtimeStatus(),
+      sendReply:(message,text,authorize)=>this.qq.sendReply(message,text,{msgSeq:1,authorize})});
+    this.store.management=this.management;
     this.running = false;
   }
   async replyAttachment(raw,principal){
@@ -63,9 +69,9 @@ export class Bridge {
   }
   callbackTransport() { return callbackTransportStatus(this.send); }
   runtimeStatus() {
-    return inspectLegacyRuntimeStatus(this.store,{principal:this.config.principal,now:this.clock(),callbackHosts:this.config.callbackHosts,bindingReady:ownerConfigured(this.config),
+    return {...inspectLegacyRuntimeStatus(this.store,{principal:this.config.principal,now:this.clock(),callbackHosts:this.config.callbackHosts,bindingReady:ownerConfigured(this.config),
       gatewayConnected:this.gatewayConnected?.(),wrongSettingPresent:this.config.callbackWrongSettingPresent,
-      callbackAllowed:sub=>{destinationUrl(sub.url,this.config.callbackHosts);return true;}});
+      callbackAllowed:sub=>{destinationUrl(sub.url,this.config.callbackHosts);return true;}}),experience_capabilities:legacyExperienceStatus('qq',this.config,this.management)};
   }
   setup(url) {
     const result=checkSetup(this.config,url,this.callbackTransport());
@@ -206,7 +212,7 @@ export class Bridge {
           object(params.arguments, ['message_id'], ['message_id']); string(params.arguments.message_id, 256);
           const message = this.store.authorizeMessage(params.arguments.message_id, principal.id, this.clock());
           return toolResult({ message_id: message.id, text: message.text, reply_deadline: new Date(message.expires).toISOString(), reply: this.experience.replyStatus(message.id),
-            ...(message.attachments.length ? { attachments: mediaMetadata(message.attachments) } : {}) });
+            ...(message.attachments.length ? { attachments: mediaMetadata(message.attachments) } : {}),...(this.store.quote(message)?{quote:this.store.quote(message)}:{}) });
         }
         if (params.name === 'get_qq_attachment') {
           const deadline = Date.now() + 40000;
@@ -221,7 +227,7 @@ export class Bridge {
           const source = authorize(), media = await this.readVoice(source, index, authorize);
           try {
             const type=source.attachments[index].type;
-            const extracted = type==='audio'?(source.attachments[index]?.transcript ? { extracted_text: source.attachments[index].transcript, extraction_status: 'complete' } : await transcribeAudio(media.bytes, { authorize, deadline })):type==='file'?extractDocumentText(media.bytes,{mimeType:media.mime}):{};
+            const extracted = type==='audio'?(source.attachments[index]?.transcript ? { extracted_text: source.attachments[index].transcript, extraction_status: 'complete' } : await transcribeAudio(media.bytes, { authorize, deadline })):type==='file'?await readableDocument(media.bytes,{mimeType:media.mime,authorize,deadline}):{};
             authorize();
             const value = { message_id: params.arguments.message_id, attachment_index: index, type, mime_type: media.mime, size: media.bytes.length, ...extracted };
             const data=media.bytes.toString('base64');
@@ -259,6 +265,7 @@ export class Bridge {
     this.running = true;
     let job;
     try {
+      if(await this.management.tick())return true;
       if (await this.outbox.tick()) return true;
       const now = this.clock();
       job = this.store.claim(now);

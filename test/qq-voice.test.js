@@ -38,7 +38,7 @@ test('owner voice events admit QQ voice, audio MIME and SILK extension while for
     assert.equal(message.text,'[语音]'); assert.equal(message.attachments[0].transcript,'这是一条合成语音');
   }
   for(const extra of [{author:{user_openid:'other'}},{author:{user_openid:settings.ownerOpenid,bot:true}},
-    {group_openid:'group'},{guild_id:'guild'},{message_reference:{message_id:'other'}},{message_type:103},{msg_elements:[{}]}]) {
+    {group_openid:'group'},{guild_id:'guild'},{message_type:103},{msg_elements:[{}]}]) {
     try { assert.equal(incomingMessage(qqPayload(now,{content:'',attachments:[attachment()],...extra}),settings,now),null); }
     catch(error) { assert.equal(error.status,403); }
   }

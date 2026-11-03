@@ -77,7 +77,7 @@ export function projectToolResult(call,result,live) {
       return {[RICH_TOOL_RESULT]:true,value:projected,content:[{type:'text',text:JSON.stringify(projected)},content]};
     }
     if (call.name === 'get_qq_message') {
-      object(value,['message_id','text','reply_deadline','reply','attachments'],['message_id','text','reply_deadline','reply']);
+      object(value,['message_id','text','reply_deadline','reply','attachments','quote'],['message_id','text','reply_deadline','reply']);
       if (value.message_id !== call.arguments.message_id) throw unavailable();
       if (value.text !== null) boundedString(value.text,2000,{empty:true,multiline:true});
       let attachments;
@@ -95,7 +95,8 @@ export function projectToolResult(call,result,live) {
           return {index,type:'audio',transcript:item.transcript,audio_available:item.audio_available};
         });
       }
-      return {message_id:call.arguments.message_id,text:value.text,reply_deadline:iso(value.reply_deadline),reply:projectStatus(value.reply,call.arguments.message_id),...(attachments?{attachments}:{})};
+      let quote;if(value.quote!==undefined){object(value.quote,['text','truncated'],['text','truncated']);boundedString(value.quote.text,4000,{empty:true,multiline:true});if(typeof value.quote.truncated!=='boolean')throw unavailable();quote={...value.quote};}
+      return {message_id:call.arguments.message_id,text:value.text,reply_deadline:iso(value.reply_deadline),reply:projectStatus(value.reply,call.arguments.message_id),...(attachments?{attachments}:{}),...(quote?{quote}:{})};
     }
     return projectStatus(value,call.arguments.message_id);
   } catch { throw unavailable(); }

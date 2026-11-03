@@ -81,5 +81,7 @@ export function readConfig(env = process.env) {
   }
   if (config.callbackHosts.some(host => !validHostname(host))) throw new Error('MCP_CALLBACK_ALLOWED_HOSTS requires exact DNS hostnames without URLs, wildcards or IP addresses');
   if (!/^[a-zA-Z0-9:_-]{1,128}$/.test(config.oauthScope)) throw new Error('Invalid OAUTH_REQUIRED_SCOPE');
+  if(env.DOT_BRIDGE_OWNER_MANAGEMENT!==undefined&&!['0','1'].includes(env.DOT_BRIDGE_OWNER_MANAGEMENT))throw new Error('Invalid owner management setting');
+  config.ownerManagementConnection=env.DOT_BRIDGE_OWNER_MANAGEMENT==='1';
   return Object.freeze(config);
 }

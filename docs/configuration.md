@@ -77,3 +77,8 @@ QQ 正文保留期在代码中为七天；可读历史上下文不延长 QQ 被�
 `pending` 为已入队，`sent` 为平台 ACK。明确权限或额度拒绝显示 `rejected`，原因分别为 `provider_permission_denied`、`provider_quota_exhausted` 或 `provider_rejected`，重复提醒随之暂停。超时、丢失或畸形 ACK、5xx 保持 `uncertain`，重启和同幂等键重试都不会再发。先核对平台与原聊天，再由本人决定后续处理。
 
 原库和原存储密钥保留提醒正文、版本及幂等状态。关闭开关会暂停后续发送；既有被动回复不受影响。服务恢复跳过超过五分钟的迟到提醒，避免集中补发。升级或回滚前检查这些新工具与队列，并保持后端、路由器、core 的版本一致。
+
+
+## 本人私聊管理命令
+
+`/help`、`/status`、`/queue`、`/subscription`、`/cancel [编号]` 使用共享 core 的加密持久控制队列。取消尚未发送的桥回复，保留发送中及结果不明状态。标准模式可显式设置 `DOT_BRIDGE_OWNER_MANAGEMENT=1`，让管理连接在 dot 订阅缺失时保持可用；普通消息收到订阅状态提示。原 dot 的停止、重置和审批在原平台处理。更多配置见[统一交互说明](https://github.com/Arcueid77/dot-bridge/blob/main/docs/new-channels.md#聊天内维护)。

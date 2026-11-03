@@ -10,7 +10,7 @@ export function incomingMessage(payload, config, now) {
   if (data.author?.user_openid !== config.ownerOpenid) throw new BridgeError('QQ identity is not allowlisted', { status: 403 });
   if (data.author.bot === true || (data.message_type !== undefined && data.message_type !== 0) ||
       data.ark_data || (data.msg_elements !== undefined && (!Array.isArray(data.msg_elements) || data.msg_elements.length)) ||
-      data.message_reference || data.group_openid || data.guild_id || data.channel_id) return null;
+      data.group_openid || data.guild_id || data.channel_id) return null;
   const attachments = incomingMedia(data.attachments);
   if (attachments === null) return null;
   const text = attachments.length && (data.content === undefined || (typeof data.content === 'string' && !data.content.trim())) ? attachments.map(item=>({audio:'[语音]',image:'[图片]',file:'[文件]'}[item.type])).join('') : data.content;
@@ -18,7 +18,7 @@ export function incomingMessage(payload, config, now) {
   const occurred = timestamp(data.timestamp);
   if (occurred > now + 30000 || occurred + config.replyTtlMs <= now) throw new BridgeError('QQ message is too old or in the future');
   return { id: data.id, sourceEventId: payload.id, owner: data.author.user_openid,
-    text, ...(attachments.length ? { attachments } : {}), timestamp: data.timestamp, expires: occurred + config.replyTtlMs };
+    text, ...(data.message_reference&&typeof data.message_reference.message_id==='string'&&data.message_reference.message_id.length<=256&&!/[\x00-\x1f\x7f]/u.test(data.message_reference.message_id)?{quoteId:data.message_reference.message_id}:{}), ...(attachments.length ? { attachments } : {}), timestamp: data.timestamp, expires: occurred + config.replyTtlMs };
 }
 
 // One token cache is shared by passive replies and optional Gateway discovery.

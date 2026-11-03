@@ -16,7 +16,7 @@
 - 持久队列、去重、重启恢复；发送结果不明时停止自动重发。
 - 可回复图片、文件或已有音频；WAV 语音会在本机转为 QQ 使用的 SILK。接收附件最多 5 MiB，回复附件最多 5 MiB。
 - 语音交给原 dot 理解；支持 WAV 音频和 SILK 本地解码，无需另配转写 API。语音回复需要已有音频，不包含文字转语音服务。
-- 当前不接收 QQ 群、频道、其他成员、视频或引用消息。
+- 当前不接收 QQ 群、频道、其他成员和视频。平台提供引用 ID 时，可读取当前本人会话、同一订阅世代中已保留的被引用内容；没有本地记录时不查询其他会话。
 
 ## 从这里开始
 
@@ -41,4 +41,4 @@
 
 QQ 已接入本人主动文字和固定提醒，默认关闭。核实应用具备平台资格及额度后，在 QQ 后端设置 `DOT_BRIDGE_OUTBOUND=owner-text`；可以立即发送，也可以按一次、每天或每周安排。仅发往原配对的本人私聊，复用原数据库和存储密钥。启用步骤、平台限制及拒绝状态见[配置说明](docs/configuration.md#主动文字与定时提醒)。
 
-详见[定时消息使用指南](https://github.com/Arcueid77/dot-bridge/blob/dev/unified-distribution/docs/scheduled-messages.md)。
+详见[定时消息使用指南](https://github.com/Arcueid77/dot-bridge/blob/main/docs/scheduled-messages.md)。
