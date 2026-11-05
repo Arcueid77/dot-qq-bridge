@@ -40,3 +40,12 @@ The project uses the [MIT license](LICENSE). See [third-party notices](THIRD_PAR
 
 
 Shared owner IM maintenance (`/status`, `/queue`, `/subscription`, `/cancel`) preserves the existing inbox, keys and subscriptions. Optional management-only gateway connection and shared protected document extraction are described in [configuration](docs/configuration.en.md).
+
+
+## Interaction and maintenance
+
+`begin_qq_reply` signals genuine processing. `append_qq_reply` submits complete cumulative generated text with consecutive sequence numbers, then `reply_to_qq` finalizes the same native stream. Retained context/quotes stay within the same owner and subscription generation. PDF/Office excerpts use the protected shared worker.
+
+The owner DM supports `/help`, `/status`, `/queue`, `/subscription`, and `/cancel [reference]`. In standard callback mode, explicit `DOT_BRIDGE_OWNER_MANAGEMENT=1` keeps maintenance connected without an active dot subscription. Cancel only unsent bridge replies; the current legitimate begin/append flow still completes one final answer, while uncertain outcomes remain for review. See [configuration](docs/configuration.en.md).
+
+See [deployment](docs/deployment.en.md) for Windows/Linux foreground and Linux systemd operation. macOS is unverified; trials and feedback are welcome. Hosted-dot pause/reset/approval remain in the original platform.

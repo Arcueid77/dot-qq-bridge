@@ -1,5 +1,8 @@
 # Finite-window development launcher
 
+Historical dual-adapter development entry. Use the [unified operations entry](https://github.com/Arcueid77/dot-bridge/blob/main/docs/operations.en.md) for current persistent deployment; [core](https://github.com/Arcueid77/dot-bridge-core) owns canonical shared source. Sibling-source and finite-window requirements below apply to this legacy tool.
+
+
 [简体中文](README.md) | [English](README.en.md) | [Home](../../README.en.md)
 
 Optional development/diagnosis with sibling QQ and Feishu source, limited to a 30-minute online window. Persistent services use the independent entries in [Deployment](../../docs/deployment.en.md), not this supervisor.

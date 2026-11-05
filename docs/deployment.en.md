@@ -8,7 +8,7 @@ This is the current single-channel official Secure MCP Tunnel workflow: original
 
 Use a continuously running Linux VPS with local persistent storage, or Windows with supported private-file protection. Once deployed, the local computer is only an administration entry point. Inspect OS, architecture, disk, existing services, ports and actual egress policy; preserve unrelated services.
 
-Node must be >=24.15 and <25, using built-in `node:sqlite`. Install an architecture-compatible official build and check OpenSSL. Windows also requires Python 3.10+ and local NTFS. Private Tunnel operation on macOS and other platforms is not supported. Static hosting, sleeping instances and short-lived functions do not meet the runtime requirements. Docker builds and operation need separate acceptance.
+Node must be >=24.15 and <25, using built-in `node:sqlite`. Install an architecture-compatible official build and check OpenSSL. Windows also requires Python 3.10+ and local NTFS. Private Tunnel operation on macOS is unverified; trials and feedback are welcome. Static hosting, sleeping instances and short-lived functions do not meet the runtime requirements. Docker builds and operation need separate acceptance.
 
 ```sh
 git clone https://github.com/Arcueid77/dot-qq-bridge.git

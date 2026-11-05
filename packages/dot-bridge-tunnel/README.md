@@ -1,5 +1,8 @@
 # 双渠道聚合兼容入口
 
+历史双适配器开发入口。现行常驻部署使用 [DotBridge 总入口](https://github.com/Arcueid77/dot-bridge/blob/main/docs/operations.md)，共享源码由 [core](https://github.com/Arcueid77/dot-bridge-core) 唯一维护。本页的同级源码和有限窗口要求仅用于此历史工具。
+
+
 [简体中文](README.md) | [English](README.en.md) | [首页](../../README.md)
 
 此薄入口在代码中注册同级 QQ、飞书适配器，共享路由实现来自已安装的 core。单渠道生产部署使用各自仓库的 `scripts/run-tunnel-router.js`，见[部署指南](../../docs/deployment.md)。

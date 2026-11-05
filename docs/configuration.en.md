@@ -2,7 +2,7 @@
 
 [简体中文](configuration.md) | [English](configuration.en.md) | [Home](../README.en.md)
 
-`check_bridge_setup` reports gateway and original-dot subscription state separately, including the stored expiry and complete pending, processing and uncertain outbound-work counts. The gateway waits for a valid subscription. Missing diagnostic history cannot reconstruct an earlier failure. Reading status never renews a subscription or changes configuration.
+`check_bridge_setup` reports gateway and original-dot subscription state separately, including the stored expiry and complete pending, processing and uncertain outbound-work counts. By default the gateway waits for a valid subscription; the owner-maintenance opt-in below preserves the local command path without one. Missing diagnostic history cannot reconstruct an earlier failure. Reading status never renews a subscription or changes configuration.
 
 QQ continues to use `MCP_CALLBACK_ALLOWED_HOSTS`. A mistakenly supplied `CALLBACK_HOSTS` setting is reported as a name mismatch; its domains are not accepted or copied automatically.
 

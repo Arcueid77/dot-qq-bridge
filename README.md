@@ -42,3 +42,12 @@
 QQ 已接入本人主动文字和固定提醒，默认关闭。核实应用具备平台资格及额度后，在 QQ 后端设置 `DOT_BRIDGE_OUTBOUND=owner-text`；可以立即发送，也可以按一次、每天或每周安排。仅发往原配对的本人私聊，复用原数据库和存储密钥。启用步骤、平台限制及拒绝状态见[配置说明](docs/configuration.md#主动文字与定时提醒)。
 
 详见[定时消息使用指南](https://github.com/Arcueid77/dot-bridge/blob/main/docs/scheduled-messages.md)。
+
+
+## 交互与维护
+
+`begin_qq_reply` 显示真实处理的输入提示；`append_qq_reply` 依序提交截至当前生成的完整累计文本，最后用 `reply_to_qq` 完成同一原生回复流。`get_qq_context` 与已保留引用仅在同一本人、同一订阅世代内读取；PDF／Office 摘录复用受保护的共享处理环境。
+
+本人原私聊支持 `/help`、`/status`、`/queue`、`/subscription`、`/cancel [编号]`。标准回调模式下，显式 `DOT_BRIDGE_OWNER_MANAGEMENT=1` 可在 dot 订阅缺失时保持维护连接。取消只作用于尚未发送的桥回复；本次已开始的 begin/append 处理仍要完成唯一最终回复，结果不明保持核对。详情见[配置说明](docs/configuration.md)。
+
+Linux、Windows 前台运行及 Linux systemd 的用法见[部署说明](docs/deployment.md)。macOS 尚未验证，欢迎试用并反馈。原 dot 的暂停、重置和审批继续使用原平台入口。

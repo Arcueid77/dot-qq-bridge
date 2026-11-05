@@ -1,5 +1,10 @@
 # Development
 
+## Current documentation baseline
+
+Component 0.8.1 consumes reviewed core 0.11.1. Metadata, `vendor/core-release.json` and the lockfile identify its source/artifact. Windows/Linux CI passed. The 2026-11-05 record covers Lark/Discord/Telegram text/progress acceptance; current QQ/Weixin interaction tests await owner messages. Source, pinned runtime and actual delivery remain separate evidence layers.
+
+
 [简体中文](development.md) | [English](development.en.md) | [Home](../README.en.md)
 
 Users need [Deployment](deployment.en.md), [Configuration](configuration.en.md) and [Operations](troubleshooting.en.md). This page is for maintainers changing code. The constraints and validation scope below are maintained here. Completed handoffs can be retrieved from Git history.

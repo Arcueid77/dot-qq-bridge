@@ -1,5 +1,12 @@
 # 开发说明
 
+## 当前文档基线 / Current documentation baseline
+
+组件 0.8.1 使用固定 core 0.11.1，版本和源 SHA 以 `package.json`、`vendor/core-release.json` 及锁文件为准。Windows／Linux CI 已运行。2026-11-05 记录：本轮新交互待本人消息，原网关和订阅沿用。
+
+Source documentation follows registered capabilities. Preserve reviewed artifacts and package documentation through the next normal release. Actual account acceptance remains separate.
+
+
 [简体中文](development.md) | [English](development.en.md) | [首页](../README.md)
 
 日常安装和操作只需[部署](deployment.md)、[功能配置](configuration.md)和[运行排错](troubleshooting.md)。本页面向修改代码的维护者；下文保留必要的设计约束与验证范围。已完成交接通过 Git 历史追溯。

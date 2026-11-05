@@ -1,5 +1,8 @@
 # 有限窗口开发启动器
 
+历史双适配器开发入口。现行常驻部署使用 [DotBridge 总入口](https://github.com/Arcueid77/dot-bridge/blob/main/docs/operations.md)，共享源码由 [core](https://github.com/Arcueid77/dot-bridge-core) 唯一维护。本页的同级源码和有限窗口要求仅用于此历史工具。
+
+
 [简体中文](README.md) | [English](README.en.md) | [首页](../../README.md)
 
 用于同级 QQ、飞书源码的可选开发和诊断，最长连接窗口 30 分钟。常驻服务使用[部署指南](../../docs/deployment.md)的独立入口，不使用此监督器。

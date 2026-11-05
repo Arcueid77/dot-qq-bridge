@@ -1,5 +1,8 @@
 # Dual-channel router compatibility entry
 
+Historical dual-adapter development entry. Use the [unified operations entry](https://github.com/Arcueid77/dot-bridge/blob/main/docs/operations.en.md) for current persistent deployment; [core](https://github.com/Arcueid77/dot-bridge-core) owns canonical shared source. Sibling-source and finite-window requirements below apply to this legacy tool.
+
+
 [简体中文](README.md) | [English](README.en.md) | [Home](../../README.en.md)
 
 This thin host registers sibling QQ and Feishu adapters in code; shared routing comes from installed core. Production single-channel deployments use each repository's `scripts/run-tunnel-router.js`; see [Deployment](../../docs/deployment.en.md).

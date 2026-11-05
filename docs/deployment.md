@@ -6,9 +6,9 @@
 
 ## 1. 检查环境并固定源码
 
-选择可长期运行、带本地持久磁盘的 Linux VPS，或具有受支持私有文件保护的 Windows。服务器独立运行后，本地电脑只是管理入口。检查系统、架构、磁盘、已有服务、端口及实际出网；不要覆盖无关服务。
+选择持续开机、带持久磁盘的 Linux 电脑或 VPS，或具有受支持私有文件保护的 Windows。服务器独立运行后，本地电脑只是管理入口。检查系统、架构、磁盘、已有服务、端口及实际出网；不要覆盖无关服务。
 
-Node 必须 >=24.15 且 <25，使用内置 `node:sqlite`；从官方来源按架构安装，检查 OpenSSL。Windows 另需 Python 3.10+ 和本地 NTFS。macOS 等其他平台的私人 Tunnel 运行尚不受支持；静态托管、休眠实例和短时函数不适用。Docker 模板需独立构建/运行验收。
+Node 必须 >=24.15 且 <25，使用内置 `node:sqlite`；从官方来源按架构安装，检查 OpenSSL。Windows 另需 Python 3.10+ 和本地 NTFS。macOS 尚未验证，欢迎试用并反馈；静态托管、休眠实例和短时函数不适用。Docker 模板需独立构建/运行验收。
 
 ```sh
 git clone https://github.com/Arcueid77/dot-qq-bridge.git
