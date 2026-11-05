@@ -1,9 +1,12 @@
+import {UPLOAD_RPC_BYTES} from '@dot-bridge/core/channels/uploads.js';
 import { object, BridgeError, RICH_TOOL_RESULT } from '@dot-bridge/core/router/common.js';
 import { QQ_AUDIO_BYTES, QQ_AUDIO_BASE64, QQ_AUDIO_MIMES, audioMime } from './qq-audio.js';
 import {MEDIA_RPC_LIMIT} from '@dot-bridge/core/channels/media.js';
 import {imageMime,validateQqMedia,validateQqAttachmentReply} from './qq-media.js';
 import {hash} from './common.js';
 import {isOutboundTool,validateOutboundArguments,projectOutboundResult} from '@dot-bridge/core/channels/outbound.js';
+import {isUploadTool,validateUploadArguments,projectUploadResult} from '@dot-bridge/core/channels/uploads.js';
+import {isChoiceTool,validateChoiceArguments,projectChoiceResult} from '@dot-bridge/core/channels/choices.js';
 import { record, unavailable, callbackUrl, boundedString, iso, projectStatus, projectPendingMessage } from '@dot-bridge/core/router/live-contract.js';
 import { projectCallbackTransportStatus } from '@dot-bridge/core/transport';
 import {RUNTIME_STATUS_FIELDS,runtimeStatusProperties,projectRuntimeStatus,optionalStatusSchemaMatch} from '@dot-bridge/core/channels/status.js';
@@ -19,6 +22,8 @@ export function projectToolResult(call,result,live) {
     if (!record(result) || result.isError !== false || !record(result.structuredContent)) throw unavailable();
     const value=result.structuredContent;
     if(live&&isOutboundTool('qq',call.name))return projectOutboundResult('qq',call,result);
+    if(live&&isUploadTool('qq',call.name))return projectUploadResult('qq',call,result);
+    if(live&&isChoiceTool('qq',call.name))return projectChoiceResult('qq',call,result);
     if (call.name === 'check_bridge_setup') {
       object(value,['configuration_ready','events_discoverable','missing_settings','callback_hostname','callback_policy','qq_api_profile','network_checked','next_step','callback_transport',...(live?['pending_message',...RUNTIME_STATUS_FIELDS]:[])],['configuration_ready','events_discoverable','missing_settings','callback_hostname','callback_policy','qq_api_profile','network_checked','next_step',...(live?['callback_transport']:[])]);
       const transport = value.callback_transport === undefined ? undefined : projectCallbackTransportStatus(value.callback_transport);
@@ -105,20 +110,23 @@ export function projectToolResult(call,result,live) {
 export const qqAdapter=Object.freeze({
  id:'qq',envPrefix:'QQ',defaultPort:8787,serviceKeyNewline:false,readinessTool,liveReadinessTool:liveSetupTool,
  backendSetupTool:liveSetupTool,readinessBackendTools:[readinessTool],liveTools:qqToolDefinitions,event:qqEvent,scopes:['owner'],
-   limits:{request:32768,response:65536,body:32768,
-     bodyTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT,list_qq_scheduled_messages:524288},timeouts:{get_qq_attachment:45000,reply_qq_attachment:45000}},
+   limits:{request:32768,response:131072,body:32768,
+     bodyTools:{append_qq_attachment_upload:UPLOAD_RPC_BYTES,reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},requestTools:{append_qq_attachment_upload:UPLOAD_RPC_BYTES,reply_to_qq:262144,append_qq_reply:262144,reply_qq_media:MEDIA_RPC_LIMIT},responseTools:{get_qq_context:262144,get_qq_attachment:MEDIA_RPC_LIMIT,list_qq_scheduled_messages:524288},timeouts:{get_qq_attachment:45000,reply_qq_attachment:45000}},
  validateToolArguments(name,args,live){
   if(name==='check_bridge_setup'){object(args,live?['callback_url']:[]);if(args.callback_url!==undefined)callbackUrl(args.callback_url);return {...args};}
   if(!live)throw new BridgeError('Operation is not enabled for this channel',{status:403,code:-32012});
   if(isOutboundTool('qq',name))return validateOutboundArguments('qq',name,args);
+  if(isUploadTool('qq',name))return validateUploadArguments('qq',name,args);
+  if(isChoiceTool('qq',name))return validateChoiceArguments('qq',name,args);
   if(name==='reply_qq_media'){validateQqMedia(args);return {...args};}
    if(name==='reply_qq_attachment')return validateQqAttachmentReply(args);
   const fields={get_qq_message:['message_id'],get_qq_attachment:['message_id','attachment_index'],begin_qq_reply:['message_id'],get_qq_context:['message_id','limit'],
-    reply_to_qq:['message_id','text','format'],append_qq_reply:['message_id','sequence','text']}[name];
+    reply_to_qq:['message_id','text','format','delivery_mode'],append_qq_reply:['message_id','sequence','text']}[name];
   if(!fields)throw unavailable();
   object(args,fields,name==='reply_to_qq'?['message_id','text']:name==='append_qq_reply'?['message_id','sequence','text']:name==='get_qq_attachment'?['message_id','attachment_index']:['message_id']);boundedString(args.message_id,256);
   if(name==='get_qq_attachment'&&(!Number.isSafeInteger(args.attachment_index)||args.attachment_index<0||args.attachment_index>9))throw new BridgeError('Invalid QQ attachment index');
   if(args.text!==undefined){boundedString(args.text,30000,{multiline:true});if(!args.text.trim())throw new BridgeError('Invalid reply text');}
+  if(args.delivery_mode!==undefined&&!['auto','file'].includes(args.delivery_mode))throw new BridgeError('Invalid reply delivery mode');
   if(Object.hasOwn(args,'format')&&!['plain','markdown'].includes(args.format))throw new BridgeError('Invalid reply format');
   if(Object.hasOwn(args,'sequence')&&(!Number.isSafeInteger(args.sequence)||args.sequence<1||args.sequence>50))throw new BridgeError('Invalid stream sequence');
   if(Object.hasOwn(args,'limit')&&(!Number.isSafeInteger(args.limit)||args.limit<1||args.limit>20))throw new BridgeError('Invalid context limit');

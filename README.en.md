@@ -49,3 +49,9 @@ Shared owner IM maintenance (`/status`, `/queue`, `/subscription`, `/cancel`) pr
 The owner DM supports `/help`, `/status`, `/queue`, `/subscription`, and `/cancel [reference]`. In standard callback mode, explicit `DOT_BRIDGE_OWNER_MANAGEMENT=1` keeps maintenance connected without an active dot subscription. Cancel only unsent bridge replies; the current legitimate begin/append flow still completes one final answer, while uncertain outcomes remain for review. See [configuration](docs/configuration.en.md).
 
 See [deployment](docs/deployment.en.md) for Windows/Linux foreground and Linux systemd operation. macOS is unverified; trials and feedback are welcome. Hosted-dot pause/reset/approval remain in the original platform.
+
+## Choices, uploads and reminder management
+
+Numbered text choices let the user answer with a selection. A dot environment with programmatic file access can upload generated media in bounded encrypted chunks, verify its size and SHA-256, then submit the source-bound final reply. Files are limited to 5 MiB and this provider's supported media types and formats.
+
+Literal reminders support weekdays, fixed intervals, pause, resume and delivery history. Check `check_qq_outbound` before use and supply the saved reminder ID and current revision. Resuming skips old paused occurrences.

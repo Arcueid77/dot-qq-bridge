@@ -1,6 +1,8 @@
 // One wire contract is used by the QQ backend and its explicit core adapter.
 import {MAX_MEDIA_BYTES} from '@dot-bridge/core/channels/media.js';
 import {outboundDefinitions} from '@dot-bridge/core/channels/outbound.js';
+import {uploadDefinitions} from '@dot-bridge/core/channels/uploads.js';
+import {choiceDefinitions} from '@dot-bridge/core/channels/choices.js';
 export const idSchema = { type: 'string', minLength: 1, maxLength: 256 };
 export const voiceMetadataSchema = { type: 'array', maxItems: 10, items: { type: 'object', properties: {
   index: { type: 'integer', minimum:0,maximum:9 }, type: { type: 'string', enum:['image','audio','file'] },
@@ -53,3 +55,6 @@ export const qqToolDefinitions = [
       required: ['message_id', 'messages', 'truncated'], additionalProperties: false }, annotations: annotations(true) }
 ];
 qqToolDefinitions.push(...outboundDefinitions('qq'));
+qqToolDefinitions.push(...uploadDefinitions('qq'));
+qqToolDefinitions.push(...choiceDefinitions('qq'));
+qqToolDefinitions.find(tool=>tool.name==='reply_to_qq').inputSchema.properties.delivery_mode={type:'string',enum:['auto','file']};

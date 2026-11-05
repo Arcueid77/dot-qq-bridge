@@ -18,6 +18,8 @@ import {inspectLegacyRuntimeStatus,legacySubscriptionDiagnostics} from '@dot-bri
 import {trackSubscriptionAttempt} from '@dot-bridge/core/channels/status.js';
 import {OwnerOutbox,isOutboundTool,OUTBOUND_INSTRUCTIONS} from '@dot-bridge/core/channels/outbound.js';
 import {BridgeError as CoreBridgeError} from '@dot-bridge/core/router/common.js';
+import {SourceUploads,isUploadTool} from '@dot-bridge/core/channels/uploads.js';
+import {isChoiceTool,validateChoiceArguments} from '@dot-bridge/core/channels/choices.js';
 
 export const EVENT_NAME = 'qq.message.created';
 const argsSchema = { type: 'object', properties: { conversation: { type: 'string', const: 'owner' } }, required: ['conversation'], additionalProperties: false };
@@ -37,6 +39,8 @@ export class Bridge {
     store ??= new Store(config);
     this.config = config; this.clock = clock; this.send = send; this.store = store;
     this.qq = createQqClient(config, send, clock); this.sendQq = this.qq.sendReply;
+    this.uploads=new SourceUploads({channel:'qq',db:this.store.db,seal:(v,a)=>this.store.vault.seal(v,a),open:(v,a)=>this.store.vault.open(v,a),clock,
+      authorize:id=>this.store.authorizeMessage(id,this.config.principal,this.clock())});
     this.outbox = new OwnerOutbox({channel:'qq',db:this.store.db,seal:(value,aad)=>this.store.vault.seal(value,aad),open:(value,aad)=>this.store.vault.open(value,aad),
       enabled:config.outboundEnabled===true,clock,available:()=>ownerConfigured(this.config),send:args=>this.qq.sendOwnerMessage(args)});
     this.experience = new QqExperience(this);
@@ -193,6 +197,16 @@ export class Bridge {
       case 'events/unsubscribe': return this.unsubscribe(params, principal);
       case 'tools/call': {
         object(params, ['name', 'arguments', '_meta'], ['name', 'arguments']);
+        if(isChoiceTool('qq',params.name)){
+          const args=validateChoiceArguments('qq',params.name,params.arguments);
+          const message=this.store.authorizeMessage(args.message_id,principal.id,this.clock());
+          const text=args.text+'\n\n'+args.choices.map((choice,index)=>`${index+1}. ${choice.label}`).join('\n');
+          const value=this.experience.queueReply(message.id,text,principal.id,this.clock());
+          return toolResult({message_id:value.message_id,status:value.status});
+        }
+        if(isUploadTool('qq',params.name))return toolResult(this.uploads.call(params.name,params.arguments,{
+          queue:(id,media)=>{const value=this.experience.queueMedia({message_id:id,type:media.type,name:media.name,mime_type:media.type==='file'?'application/octet-stream':media.mime_type,data:media.data},principal.id,this.clock());return {message_id:value.message_id,status:value.status};},
+          getReplyStatus:id=>{const value=this.experience.replyStatus(id);return {message_id:value.message_id,status:value.status};}}));
         if(isOutboundTool('qq',params.name)){
           let result;
           try { result=this.outbox.call(params.name,params.arguments); }
@@ -236,7 +250,9 @@ export class Bridge {
           } finally { media.bytes.fill(0); }
         }
         if (params.name === 'reply_to_qq') {
-          object(params.arguments, ['message_id', 'text', 'format'], ['message_id', 'text']); string(params.arguments.message_id, 256); plainText(params.arguments.text, 30000);
+          object(params.arguments, ['message_id', 'text', 'format','delivery_mode'], ['message_id', 'text']); string(params.arguments.message_id, 256); plainText(params.arguments.text, 30000);
+          if(params.arguments.delivery_mode!==undefined&&!['auto','file'].includes(params.arguments.delivery_mode))throw new BridgeError('Invalid reply delivery mode');
+          if(params.arguments.delivery_mode==='file')return toolResult(this.experience.queueMedia({message_id:params.arguments.message_id,type:'file',name:'answer.md',mime_type:'application/octet-stream',data:Buffer.from(params.arguments.text,'utf8').toString('base64')},principal.id,this.clock()));
           return toolResult(this.experience.queueReply(params.arguments.message_id, params.arguments.text, principal.id, this.clock(), params.arguments.format));
         }
         if (params.name === 'reply_qq_media') return toolResult(this.experience.queueMedia(params.arguments,principal.id,this.clock()));

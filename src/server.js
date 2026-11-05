@@ -1,3 +1,5 @@
+import {BridgeError as CoreBridgeError} from '@dot-bridge/core/router/common.js';
+import {UPLOAD_RPC_BYTES} from '@dot-bridge/core/channels/uploads.js';
 import http from 'node:http';
 import { TextDecoder } from 'node:util';
 import { Bridge } from './bridge.js';
@@ -18,7 +20,7 @@ function json(res, status, value, headers = {}) {
 async function readBody(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) throw new BridgeError('Expected application/json', { status: 415 });
   if (req.headers['content-encoding'] && req.headers['content-encoding'] !== 'identity') throw new BridgeError('Compressed bodies are unsupported', { status: 415 });
-  const limit = req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?MEDIA_RPC_LIMIT:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
+  const limit = req.url === '/mcp' && req.headers['mcp-name']==='append_qq_attachment_upload'?UPLOAD_RPC_BYTES:req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?MEDIA_RPC_LIMIT:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
   if (Number(req.headers['content-length']) > limit) throw new BridgeError('Request too large', { status: 413 });
   let timer;
   const read = (async () => {
@@ -137,7 +139,7 @@ export function createApp(config, { clock = Date.now, send, worker = true, appro
       }
       return json(res, 404, { error: 'Not found' });
     } catch (error) {
-      const safe = error instanceof BridgeError ? error : new BridgeError('Internal bridge error', { status: 500, code: -32603 });
+      const safe = error instanceof BridgeError ? error : error instanceof CoreBridgeError ? new BridgeError(error.message,{status:error.status,code:error.code,data:error.data}) : new BridgeError('Internal bridge error', { status: 500, code: -32603 });
       const extra = safe.status === 401 && isMcp && config.authMode !== 'tunnel-service' ? { 'WWW-Authenticate': config.authMode === 'oauth' ?
         `Bearer resource_metadata="${config.publicOrigin}/.well-known/oauth-protected-resource/mcp", scope="${config.oauthScope}"` : 'Bearer' } : {};
       if (!res.headersSent && !res.destroyed) json(res, safe.status, isMcp ? { jsonrpc: '2.0', id: rpcId ?? null,
