@@ -2,7 +2,9 @@
 
 ## Current documentation baseline
 
-Component 0.8.1 consumes reviewed core 0.11.1. Metadata, `vendor/core-release.json` and the lockfile identify its source/artifact. Windows/Linux CI passed. The 2026-11-05 record covers Lark/Discord/Telegram text/progress acceptance; current QQ/Weixin interaction tests await owner messages. Source, pinned runtime and actual delivery remain separate evidence layers.
+Component 0.9.1 consumes reviewed core 0.12.0. Metadata, `vendor/core-release.json` and the lockfile identify its source/artifact. Local checks on 2026-11-11 used Node 24.22.2: Windows passed 271 tests; Linux passed 263 with eight Windows-only skips. Remote CI and real-account acceptance were not run for this batch.
+
+The one-message experiment now enforces its grant at both tool and provider entrypoints while preserving the router's fixed catalog contract. Streaming, media, choices and proactive sends cannot bypass the single fixed-text reply. Docker's default command reaches service preflight and exits nonzero without configuration. New regressions reproduced three failures on previous source and passed after the fix. The command entry was tested; a complete container build and run remain unverified.
 
 
 [简体中文](development.md) | [English](development.en.md) | [Home](../README.en.md)

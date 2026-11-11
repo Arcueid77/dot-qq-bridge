@@ -10,6 +10,8 @@
 
 Node 必须 >=24.15 且 <25，使用内置 `node:sqlite`；从官方来源按架构安装，检查 OpenSSL。Windows 另需 Python 3.10+ 和本地 NTFS。macOS 尚未验证，欢迎试用并反馈；静态托管、休眠实例和短时函数不适用。Docker 模板需独立构建/运行验收。
 
+Docker 镜像默认执行 `node scripts/qq-service.js --run --confirm-persistent-service`，先检查配置，通过后常驻运行；缺少配置会报错退出。只查看部署计划时，显式覆盖命令为 `node scripts/qq-service.js --plan`。启动前准备下文的私有配置和持久数据挂载，属主须匹配容器内的 `node` 用户，停止宽限期至少 45 秒。Linux 上使用本指南的 Tunnel 拓扑时，容器采用 host 网络并设置 `HOST=127.0.0.1`，使宿主机聚合器可访问 QQ 后端；不要公开映射 MCP 端口。
+
 ```sh
 git clone https://github.com/Arcueid77/dot-qq-bridge.git
 cd dot-qq-bridge

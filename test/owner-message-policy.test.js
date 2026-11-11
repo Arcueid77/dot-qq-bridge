@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Bridge } from '../src/bridge.js';
+import { Bridge, toolDefinitions } from '../src/bridge.js';
 import { readConfig } from '../src/config.js';
 import { preflightCallbackTransport } from '@dot-bridge/core/transport';
 import { installQqOwnerMessagePolicy, pendingQqMessageSchema } from '../src/owner-message-policy.js';
@@ -100,5 +100,63 @@ test('received-message expiry remains authoritative and stop clears only the sel
     f.policy.expire(); assert.equal(f.policy.status().phase, 'expired'); assert.equal(f.attempts(), 0);
     assert.equal(f.bridge.store.get('SELECT count(*) AS n FROM messages').n, 1);
     assert.equal(f.bridge.store.get('SELECT text FROM messages').text, null);
+  } finally { f.bridge.store.close(); }
+});
+
+test('one-message policy preserves router schemas but rejects native and future tool calls without queuing them', async () => {
+  const f = fixture(); try {
+    await f.bridge.subscribe(f.params, f.principal); f.bridge.acceptQq(f.payload('one'), 'one'); await f.bridge.tick();
+    const catalog = await f.bridge.rpc('tools/list', {}, f.principal);
+    assert.deepEqual(catalog.tools.map(tool => tool.name), toolDefinitions.map(tool => tool.name));
+    for (const tool of catalog.tools) assert.deepEqual(tool.inputSchema, toolDefinitions.find(original => original.name === tool.name).inputSchema);
+    const discovery = await f.bridge.rpc('server/discover', {}, f.principal);
+    const queued = f.bridge.store.get('SELECT count(*) AS n FROM jobs').n;
+    for (const [name, args] of [
+      ['begin_qq_reply', { message_id: 'one' }],
+      ['append_qq_reply', { message_id: 'one', sequence: 1, text: 'not the approved reply' }],
+      ['reply_qq_media', { message_id: 'one', type: 'file', name: 'test.txt', mime_type: 'application/octet-stream', data: Buffer.from('synthetic').toString('base64') }],
+      ['reply_qq_attachment', { message_id: 'one', attachment_index: 0 }],
+      ['reply_qq_choices', { message_id: 'one', text: 'choose', choices: [{ label: 'one' }, { label: 'two' }] }],
+      ['begin_qq_attachment_upload', { message_id: 'one' }],
+      ['send_qq_message', { text: 'unapproved' }],
+      ['schedule_qq_message', { text: 'unapproved' }],
+      ['future_qq_write', {}],
+    ]) {
+      await assert.rejects(f.bridge.rpc('tools/call', { name, arguments: args }, f.principal), error => error.code === -32012, name);
+    }
+    assert.match(catalog.tools.find(tool => tool.name === 'begin_qq_reply').description, /Unavailable/);
+    assert.match(discovery.instructions, /fixed plain-text reply/);
+    assert.doesNotMatch(discovery.instructions, /call begin_qq_reply/);
+    for (const extra of [{ format: 'markdown' }, { delivery_mode: 'file' }]) {
+      await assert.rejects(f.bridge.rpc('tools/call', { name: 'reply_to_qq', arguments: { message_id: 'one', text: 'fixed reply', ...extra } }, f.principal));
+    }
+    assert.equal(f.bridge.store.get('SELECT count(*) AS n FROM jobs').n, queued);
+    assert.equal(f.bridge.store.get('SELECT count(*) AS n FROM qq_streams').n, 0);
+    assert.equal(f.bridge.store.get('SELECT count(*) AS n FROM qq_typing').n, 0);
+    assert.equal(f.policy.status().reply_attempted, false); assert.equal(f.attempts(), 0);
+    await f.bridge.rpc('tools/call', { name: 'reply_to_qq', arguments: { message_id: 'one', text: 'fixed reply' } }, f.principal);
+    await f.bridge.tick(); await f.bridge.tick();
+    assert.equal(f.attempts(), 1); assert.equal(f.policy.status().provider_acknowledged, true);
+  } finally { f.bridge.store.close(); }
+});
+
+test('native provider and management entrypoints cannot bypass the fixed-reply budget', async () => {
+  const f = fixture(); try {
+    await f.bridge.subscribe(f.params, f.principal); f.bridge.acceptQq(f.payload('one'), 'one'); await f.bridge.tick();
+    const message = f.bridge.store.message('one');
+    for (const [name, args] of [
+      ['sendReply', [message, 'not approved']],
+      ['sendTyping', [message, { msgSeq: 1 }]],
+      ['sendStream', [message, 'not approved', { msgSeq: 1, index: 0 }]],
+      ['uploadMedia', [message, { type: 'file', data: Buffer.from('synthetic').toString('base64') }]],
+      ['sendMedia', [message, { fileInfo: 'synthetic' }, { msgSeq: 1 }]],
+      ['sendOwnerMessage', [{ text: 'not approved', idempotencyKey: 'synthetic', authorize() {} }]],
+    ]) await assert.rejects(f.bridge.qq[name](...args), error => error.code === -32012, name);
+    assert.equal(f.attempts(), 0); assert.equal(f.policy.status().reply_attempted, false);
+    // Even an internally queued native frame must stop at the provider boundary.
+    f.bridge.experience.append('one', 1, 'unapproved native frame', f.principal.id, Date.now());
+    f.advance(1000); await f.bridge.tick(); await f.bridge.tick();
+    assert.equal(f.attempts(), 0); assert.equal(f.policy.status().reply_attempted, false);
+    assert.equal(f.bridge.store.get("SELECT state FROM jobs WHERE kind='stream'").state, 'cancelled');
   } finally { f.bridge.store.close(); }
 });

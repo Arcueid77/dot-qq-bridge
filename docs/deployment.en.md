@@ -10,6 +10,8 @@ Use a continuously running Linux VPS with local persistent storage, or Windows w
 
 Node must be >=24.15 and <25, using built-in `node:sqlite`. Install an architecture-compatible official build and check OpenSSL. Windows also requires Python 3.10+ and local NTFS. Private Tunnel operation on macOS is unverified; trials and feedback are welcome. Static hosting, sleeping instances and short-lived functions do not meet the runtime requirements. Docker builds and operation need separate acceptance.
 
+The Docker image defaults to `node scripts/qq-service.js --run --confirm-persistent-service`: it checks configuration and then runs continuously, exiting with an error when configuration is missing. To inspect only the plan, override the command with `node scripts/qq-service.js --plan`. Prepare the private configuration and persistent mounts described below, owned by the container's `node` user, and allow at least 45 seconds for shutdown. For this Tunnel topology on Linux, use host networking and `HOST=127.0.0.1` so the host router can reach the QQ backend; do not publish MCP ports.
+
 ```sh
 git clone https://github.com/Arcueid77/dot-qq-bridge.git
 cd dot-qq-bridge

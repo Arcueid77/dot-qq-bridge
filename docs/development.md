@@ -2,7 +2,9 @@
 
 ## 当前文档基线 / Current documentation baseline
 
-组件 0.8.1 使用固定 core 0.11.1，版本和源 SHA 以 `package.json`、`vendor/core-release.json` 及锁文件为准。Windows／Linux CI 已运行。2026-11-05 记录：本轮新交互待本人消息，原网关和订阅沿用。
+组件 0.9.1 使用固定 core 0.12.0，版本和源 SHA 以 `package.json`、`vendor/core-release.json` 及锁文件为准。2026-11-11 本地 Node 24.22.2 检查通过：Windows 271 项测试通过；Linux 263 项通过、8 项 Windows 专用测试跳过。本轮尚未运行远程 CI 或真实账号验收。
+
+本次修复在单消息实验的工具调用与平台发送两层限制权限，保留聚合器要求的固定目录格式；流式、媒体、选项及主动发送不能绕开一次固定文字回复。Docker 默认命令进入正式服务配置检查，缺配置时非零退出。新增回归在旧源码复现 3 个失败，修复后通过。命令入口已检查，完整容器构建与运行尚未验证。
 
 Source documentation follows registered capabilities. Preserve reviewed artifacts and package documentation through the next normal release. Actual account acceptance remains separate.
 

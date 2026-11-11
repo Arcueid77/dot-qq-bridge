@@ -77,6 +77,13 @@ test('real Bridge/Store owner-wait composition renews only the same authenticate
     assert.equal(pending.structuredContent.pending_message.message_id, 'fixture-message');
     const pendingHttp = await post('tools/call', { name: 'check_bridge_setup', arguments: {} });
     assert.equal(pendingHttp.status, 200); assert.equal(pendingHttp.body.result.structuredContent.pending_message.message_id, 'fixture-message');
+    for (const [name, args] of [['begin_qq_reply', { message_id: 'fixture-message' }],
+      ['append_qq_reply', { message_id: 'fixture-message', sequence: 1, text: 'not approved' }]]) {
+      const denied = await post('tools/call', { name, arguments: args });
+      assert.equal(denied.body.error.code, -32012);
+    }
+    assert.equal(app.bridge.store.get('SELECT count(*) AS n FROM qq_streams').n, 0);
+    assert.equal(app.bridge.store.get('SELECT count(*) AS n FROM qq_typing').n, 0);
     const queuedHttp = await post('tools/call', { name: 'reply_to_qq', arguments: { message_id: 'fixture-message', text: 'fixed' } });
     assert.equal(queuedHttp.status, 200); assert.equal(queuedHttp.body.result.structuredContent.status, 'pending');
     assert.equal(runtime.status().provider_acknowledged, false);
