@@ -16,8 +16,8 @@ Received attachments can be reused by their source-message index, without copyin
 - Durable queues, deduplication and restart recovery; uncertain sends are never automatically resent.
 - Optional owner-only proactive text and once/daily/weekly reminders, reusing encrypted state. Disabled by default; verify actual QQ application eligibility and quota before enabling. See [configuration](docs/configuration.en.md#owner-proactive-text-and-saved-reminders).
 - Reply with images, files or existing audio; PCM WAV is converted locally to QQ SILK. Incoming attachments are capped at 5 MiB and outgoing attachments at 5 MiB.
-- The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies require existing bytes; no text-to-speech service is included.
-- QQ groups, guilds, other members and videos remain outside this component. When the platform supplies a quote ID, retained quoted content is resolved only within the same owner and subscription generation; missing references never fetch another conversation.
+- The original dot interprets voice, using QQ WAV resources or local SILK decoding. Audio replies can use existing bytes or the optional protected local speech synthesizer.
+- Selected official QQ group mentions use protected membership rules. Owner C2C is the default; guild channels and video keep their separate provider limits. When the platform supplies a quote ID, retained quoted content is resolved only within the same owner and subscription generation; missing references never fetch another conversation.
 
 ## Start here
 
@@ -55,3 +55,18 @@ See [deployment](docs/deployment.en.md) for Windows/Linux foreground and Linux s
 Numbered text choices let the user answer with a selection. A dot environment with programmatic file access can upload generated media in bounded encrypted chunks, verify its size and SHA-256, then submit the source-bound final reply. Files are limited to 5 MiB and this provider's supported media types and formats.
 
 Literal reminders support weekdays, fixed intervals, pause, resume and delivery history. Check `check_qq_outbound` before use and supply the saved reminder ID and current revision. Resuming skips old paused occurrences.
+
+
+## Tasks, consecutive messages and speech
+
+Task tools return a source-bound reference, passive deadline and remaining seconds. The original dot can save one complete text result. The paired owner can use `/tasks` and `/result reference` in the original DM. Source retention applies, and ambiguous delivery stays uncertain.
+
+The protected interaction policy accepts `queue`, for example `{"mode":"batch","window_ms":750,"max_messages":5}`. Modes are `independent`, `serial` and `batch`, defaulting to independent. A batch retains every source and replies through the last source as its anchor. Attachments, quotes and work already started are handled separately, with the existing conversation/member isolation.
+
+Linux operators can install eSpeak NG and the protected audio runtime, then set `DOT_BRIDGE_SPEECH_SYNTHESIS=local-espeak` and `DOT_BRIDGE_SPEECH_VOICE=zh`. The original dot uses `check_qq_speech` and `reply_qq_speech`, limited to 2000 characters and 120 seconds. The full text is also retained in the task record.
+
+An explicitly rejected one-time proactive send can be retried after owner confirmation using `retry_qq_outbound`, its original ID and current revision. The per-channel proactive switch still applies. Recurring reminders keep their edit/resume flow. Hosted-dot stop, reset and approvals use the original platform controls.
+
+## Selected QQ groups
+
+`DOT_BRIDGE_INTERACTION_POLICY_FILE` points to protected JSON. Its `groups` use the shared `conversation_id`, `members`, `allow_from`, `mention`, `auto_reply`, `keywords` and `context_scope` fields. Membership supports owner, allowlist and all. Reception follows the official QQ group-mention events actually delivered. No group is enabled by default. Coordinate the original dot's single subscription to `conversation=configured` before enabling groups. Replies retain the original provider message ID, and group/private context stays separate. Long group answers use a file.

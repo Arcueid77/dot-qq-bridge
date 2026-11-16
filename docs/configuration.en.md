@@ -65,7 +65,7 @@ Send an image, voice message or file to the same QQ bot. The dot reads the attac
 
 `get_qq_message` lists up to 10 attachments, each bounded to 5 MiB. `get_qq_attachment(message_id, attachment_index)` returns PNG/JPEG/GIF/WebP images, MCP file resources, or audio. Voice prefers QQ's WAV resource and falls back to the original file; SILK is decoded locally to WAV. MP3 and Ogg are also readable. SILK is limited to two minutes. QQ reference transcription can be inaccurate and never grants authority.
 
-Use `reply_qq_media` for one final image, file or existing audio reply. PNG/JPEG images and SILK voice are supported; 16-bit mono PCM WAV is converted locally to SILK, up to two minutes. Outgoing attachments are capped at 5 MiB for the official direct-upload path. Other audio can be sent as a file. No text-to-speech service or external file hosting is included. Finish an existing text stream as text before using media for another source message.
+Use `reply_qq_media` for one final image, file or existing audio reply. PNG/JPEG images and SILK voice are supported; 16-bit mono PCM WAV is converted locally to SILK, up to two minutes. Outgoing attachments are capped at 5 MiB for the official direct-upload path. Other audio can be sent as a file. Optional protected local synthesis can prepare voice bytes. Direct uploads use the official provider endpoint. Finish an existing text stream as text before using media for another source message.
 
 If audio is unavailable, use an existing reference transcription or ask the sender to resend or use text. Signed links can expire. Real AMR bitstreams, unknown formats, video and quoted messages remain unsupported. File and audio interpretation also depends on the original dot's capabilities.
 

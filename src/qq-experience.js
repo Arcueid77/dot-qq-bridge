@@ -32,6 +32,8 @@ export class QqExperience {
     return { message_id: id, status: row?.state ?? 'none', error: row?.last_error ?? null };
   }
   replyStatus(id) {
+    const anchor=this.store.conversationQueue?.anchor(id)??id;
+    if(anchor!==id)return {...this.replyStatus(anchor),message_id:id};
     const final = this.store.replyStatus(id);
     if (final.status !== 'none') return final;
     const failed = this.store.get("SELECT state,last_error FROM jobs WHERE message_id=? AND kind='stream' AND state IN ('uncertain','dead','cancelled','expired') ORDER BY id LIMIT 1", id);
@@ -43,8 +45,10 @@ export class QqExperience {
     return final;
   }
   begin(id, principal, now) {
+    this.store.conversationQueue?.assertWritable(id);
     return this.store.tx(() => {
       const m = this.store.authorizeMessage(id, principal, now);
+      if (m.groupOpenid) return this.replyStatus(id);
       if (this.store.get('SELECT message_id FROM qq_typing WHERE message_id=?', id)) return this.status(id, `typing:${id}`);
       if (m.expires <= now || this.store.get('SELECT message_id FROM replies WHERE message_id=?', id)) throw new BridgeError('Reply already finished or passive window expired');
       this.store.run('INSERT INTO qq_typing VALUES (?,?)', id, this.sequence(id));
@@ -66,10 +70,12 @@ export class QqExperience {
     }
   }
   append(id, sequence, text, principal, now) {
+    this.store.conversationQueue?.assertWritable(id);
     plainText(text, 30000);
     if (!Number.isSafeInteger(sequence) || sequence < 1 || sequence > 50) throw new BridgeError('Invalid stream sequence');
     return this.store.tx(() => {
       const m = this.store.authorizeMessage(id, principal, now);
+      if (m.groupOpenid) throw new BridgeError('QQ group replies use text or file delivery.');
       const previous = this.store.get('SELECT digest FROM qq_frames WHERE message_id=? AND sequence=?', id, sequence);
       if (previous) {
         if (previous.digest !== hash(text)) throw new BridgeError('Stream sequence already has different text');
@@ -97,6 +103,10 @@ export class QqExperience {
     if (!['plain', 'markdown'].includes(format)) throw new BridgeError('Invalid reply format');
     // The delivery sequence and queue commit in one existing SQLite transaction.
     const m = this.store.authorizeMessage(id, principal, now);
+    if (m.groupOpenid && text.length > 2000) {
+      return this.queueMedia({message_id: id, type: 'file', name: 'answer.txt', mime_type: 'application/octet-stream',
+        data: Buffer.from(text, 'utf8').toString('base64')}, principal, now);
+    }
     const old = this.store.get('SELECT * FROM qq_reply_options WHERE message_id=?', id);
     const stream = this.store.get('SELECT * FROM qq_streams WHERE message_id=?', id);
     if (!old) {
@@ -107,7 +117,7 @@ export class QqExperience {
       }
     } else if (old.format !== format) throw new BridgeError('Reply already has a different format');
     return this.store.queueReply(id, text, principal, now, () => {
-      const native = stream || text.length > 2000;
+      const native = !m.groupOpenid && (stream || text.length > 2000);
       const seq = native ? this.ensureStream(m).msg_seq : this.sequence(id);
       this.store.run('INSERT INTO qq_reply_options VALUES (?,?,?)', id, seq, format);
     });
@@ -115,10 +125,11 @@ export class QqExperience {
   context(id, principal, now, limit = 10) {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 20) throw new BridgeError('Invalid context limit');
     const anchor = this.store.authorizeMessage(id, principal, now);
-    const rows = this.store.all(`SELECT id FROM messages WHERE principal=? AND owner=? AND subscription_id=? AND generation=?
+    const rows = this.store.all(`SELECT id FROM messages WHERE principal=? AND subscription_id=? AND generation=?
       AND attempted_at IS NOT NULL AND received>=? AND (received<? OR (received=? AND rowid<=(SELECT rowid FROM messages WHERE id=?)))
-      ORDER BY received DESC,rowid DESC LIMIT ?`, principal, anchor.owner, anchor.subscription_id, anchor.generation,
-      now - this.bridge.config.textRetentionMs, anchor.received, anchor.received, anchor.id, limit + 1);
+      ORDER BY received DESC,rowid DESC LIMIT ?`, principal, anchor.subscription_id, anchor.generation,
+      now - this.bridge.config.textRetentionMs, anchor.received, anchor.received, anchor.id, 1000)
+      .filter(row => sameQqConversation(this.bridge.config, anchor, this.store.message(row.id)));
     let budget = 30000; const messages = []; let truncated = rows.length > limit;
     for (const row of rows.slice(0, limit)) {
       const m = this.store.message(row.id), isMedia=this.store.get('SELECT format FROM qq_reply_options WHERE message_id=?',m.id)?.format==='media';
@@ -218,3 +229,4 @@ export class QqExperience {
     this.store.run('UPDATE qq_frames SET text=NULL WHERE created<?', now - this.bridge.config.textRetentionMs);
   }
 }
+import {sameQqConversation} from './qq-routing.js';

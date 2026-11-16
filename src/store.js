@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import {qqRoute, sameQqConversation} from './qq-routing.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -44,6 +45,7 @@ export class Store {
       CREATE TABLE IF NOT EXISTS rates (kind TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS rate_window ON rates(kind,at);
       CREATE TABLE IF NOT EXISTS qq_message_references(message_id TEXT PRIMARY KEY REFERENCES messages(id),payload TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS qq_message_routes(message_id TEXT PRIMARY KEY REFERENCES messages(id),payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS gateway_lease (slot INTEGER PRIMARY KEY CHECK(slot=1), token TEXT NOT NULL, expires INTEGER NOT NULL);`);
       for (const table of ['subscriptions', 'messages']) {
         if (!this.all(`PRAGMA table_info(${table})`).some(column => column.name === 'generation')) this.db.exec(`ALTER TABLE ${table} ADD COLUMN generation INTEGER NOT NULL DEFAULT 1`);
@@ -132,7 +134,8 @@ export class Store {
       const existing = this.get('SELECT active,expires,generation FROM subscriptions WHERE id=?', subscription.id);
       const generation = existing ? existing.generation + (existing.active && existing.expires > now ? 0 : 1) : 1;
       const callback = this.vault.seal({ url: subscription.url, secret: subscription.secret,
-        oldSecret: subscription.oldSecret ?? null, oldSecretUntil: subscription.oldSecretUntil ?? 0 }, `subscription:${subscription.id}`);
+        oldSecret: subscription.oldSecret ?? null, oldSecretUntil: subscription.oldSecretUntil ?? 0,
+        scope: subscription.scope ?? 'owner' }, `subscription:${subscription.id}`);
       this.run(`INSERT INTO subscriptions(id,principal,callback,expires,verified_until,active,generation) VALUES (?,?,?,?,?,1,?)
         ON CONFLICT(id) DO UPDATE SET callback=excluded.callback,expires=excluded.expires,verified_until=excluded.verified_until,active=1,generation=excluded.generation`,
         subscription.id, subscription.principal, callback, subscription.expires, subscription.verified_until, generation);
@@ -166,6 +169,9 @@ export class Store {
       if (this.get('SELECT id FROM replays WHERE id=?', replayId) || this.get('SELECT id FROM messages WHERE id=? OR source_event_id=?', message.id, message.sourceEventId)) return 'duplicate';
       const subscription = this.activeSubscription(now);
       if (!subscription) throw new BridgeError('No active current-dot subscription', { status: 503 });
+      if (!qqRoute(this.config, message) || (message.groupOpenid && subscription.scope !== 'configured')) {
+        throw new BridgeError('QQ conversation is outside the active subscription', {status: 403, code: -32012});
+      }
       this.capacity();
       this.rate('inbound', this.config.inboundPerMinute, now);
       const eventId = `evt_${hash(`${this.config.qqAppId}:${message.id}`)}`;
@@ -174,6 +180,9 @@ export class Store {
         message.owner, subscription.id, message.timestamp, message.expires, now, this.vault.seal(message.text, `message:${message.id}`), subscription.generation ?? (this.config.bridgeMode === 'sites' ? 1 : undefined),
         message.attachments?.length ? this.vault.seal(message.attachments, `attachments:${message.id}`) : null);
       if(message.quoteId)this.run('INSERT INTO qq_message_references VALUES (?,?)',message.id,this.vault.seal({id:message.quoteId},`quote:${message.id}`));
+      if (message.groupOpenid) this.run('INSERT INTO qq_message_routes VALUES (?,?)', message.id,
+        this.vault.seal({groupOpenid: message.groupOpenid, providerMessageId: message.providerMessageId,
+          botMentioned: message.botMentioned === true}, `route:${message.id}`));
       this.run('INSERT INTO jobs(id,kind,message_id,subscription_id,next_at) VALUES (?,?,?,?,?)', `event:${eventId}`, 'event', message.id, subscription.id, now);
       this.run('INSERT INTO replays VALUES (?,?)', replayId, now + 2 * this.config.signatureSkewSeconds * 1000);
       // Optional code-injected admission budget shares this exact transaction.
@@ -184,14 +193,17 @@ export class Store {
   }
   message(id) {
     const row = this.get('SELECT * FROM messages WHERE id=?', id);
-    return row ? { ...row, text: row.text ? this.vault.open(row.text, `message:${id}`) : null,
+    const route = row && this.get('SELECT payload FROM qq_message_routes WHERE message_id=?', id);
+    return row ? { ...row, ...(route ? this.vault.open(route.payload, `route:${id}`) : {}), text: row.text ? this.vault.open(row.text, `message:${id}`) : null,
       attachments: row.attachments ? this.vault.open(row.attachments, `attachments:${id}`) : [] } : undefined;
   }
   quote(message) {
     const record=this.get('SELECT payload FROM qq_message_references WHERE message_id=?',message.id);if(!record)return;
     const reference=this.vault.open(record.payload,'quote:'+message.id);
-    const target=this.get('SELECT * FROM messages WHERE (id=? OR outbound_id=?) AND owner=? AND principal=? AND subscription_id=? AND generation=? AND text IS NOT NULL LIMIT 1',reference.id,reference.id,message.owner,message.principal,message.subscription_id,message.generation);
+    const sourceId = message.groupOpenid ? 'group_' + hash(JSON.stringify([message.groupOpenid, reference.id])) : reference.id;
+    const target=this.get('SELECT * FROM messages WHERE (id=? OR outbound_id=?) AND principal=? AND subscription_id=? AND generation=? AND text IS NOT NULL LIMIT 1',sourceId,reference.id,message.principal,message.subscription_id,message.generation);
     if(!target)return;
+    if (!sameQqConversation(this.config, message, this.message(target.id))) return;
     const text=target.outbound_id===reference.id?this.replyText(target.id):this.vault.open(target.text,'message:'+target.id);
     if(typeof text!=='string')return;
     let clipped='';for(const char of text){if(clipped.length+char.length>4000)break;clipped+=char;}
@@ -200,7 +212,8 @@ export class Store {
   authorizeMessage(id, principal, now) {
     if(this.management?.cancelled(id))throw new BridgeError('Reply cancelled by owner',{code:-32012});
     const message = this.message(id), subscription = message && this.subscription(message.subscription_id);
-    if (!message || message.principal !== principal || message.owner !== this.config.ownerOpenid || !subscription?.active ||
+    if (!message || message.principal !== principal || !qqRoute(this.config, message) ||
+        (message.groupOpenid && subscription?.scope !== 'configured') || !subscription?.active ||
         subscription.expires <= now || subscription.principal !== principal ||
         (subscription.generation ?? (this.config.bridgeMode === 'sites' ? 1 : undefined)) !== message.generation ||
         this.activeSubscription(now)?.id !== subscription.id || !message.attempted_at) {
@@ -209,6 +222,7 @@ export class Store {
     return message;
   }
   queueReply(id, text, principal, now, configure = () => {}, checkRetainedBytes = () => {}) {
+    this.conversationQueue?.assertWritable(id);
     return this.tx(() => {
       const message = this.authorizeMessage(id, principal, now);
       const previous = this.get('SELECT digest FROM replies WHERE message_id=?', id);
@@ -230,6 +244,8 @@ export class Store {
     });
   }
   replyStatus(id) {
+    const anchor=this.conversationQueue?.anchor(id)??id;
+    if(anchor!==id)return {...this.replyStatus(anchor),message_id:id};
     if(this.management?.cancelled(id))return {message_id:id,status:'cancelled',error:null};
     const row = this.get("SELECT state,last_error FROM jobs WHERE id=? AND kind='reply'", `reply:${id}`);
     return { message_id: id, status: row?.state ?? 'none', error: row?.last_error ?? null };

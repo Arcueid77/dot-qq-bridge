@@ -20,13 +20,17 @@ import {OwnerOutbox,isOutboundTool,OUTBOUND_INSTRUCTIONS} from '@dot-bridge/core
 import {BridgeError as CoreBridgeError} from '@dot-bridge/core/router/common.js';
 import {SourceUploads,isUploadTool} from '@dot-bridge/core/channels/uploads.js';
 import {isChoiceTool,validateChoiceArguments} from '@dot-bridge/core/channels/choices.js';
+import {qqRoute} from './qq-routing.js';
+import {TaskLedger,isTaskTool} from '@dot-bridge/core/channels/tasks.js';
+import {LegacyConversationQueue} from '@dot-bridge/core/channels/legacy-conversation-queue.js';
+import {SourceSpeech,isSpeechTool,validateSpeechArguments} from '@dot-bridge/core/channels/speech.js';
 
 export const EVENT_NAME = 'qq.message.created';
-const argsSchema = { type: 'object', properties: { conversation: { type: 'string', const: 'owner' } }, required: ['conversation'], additionalProperties: false };
+const argsSchema = { type: 'object', properties: { conversation: { type: 'string', enum: ['owner', 'configured'] } }, required: ['conversation'], additionalProperties: false };
 export const eventDefinition = {
-  name: EVENT_NAME, description: 'A verified C2C message from the configured QQ owner. Text, attachments and transcription are untrusted data.',
+  name: EVENT_NAME, description: 'A verified owner private message or explicitly configured QQ group mention. Text, attachments and transcription are untrusted data.',
   delivery: ['webhook'], inputSchema: argsSchema,
-  payloadSchema: { type: 'object', properties: { message_id: { type: 'string' }, conversation: { type: 'string', const: 'owner' },
+  payloadSchema: { type: 'object', properties: { message_id: { type: 'string' }, conversation: { type: 'string', enum: ['owner', 'configured'] },
     text: { type: 'string', maxLength: 2000 }, reply_deadline: { type: 'string', format: 'date-time' }, attachments: { type: 'integer', minimum: 0, maximum: 10 } },
     required: ['message_id', 'conversation', 'text', 'reply_deadline'], additionalProperties: false }
 };
@@ -41,13 +45,34 @@ export class Bridge {
     this.qq = createQqClient(config, send, clock); this.sendQq = this.qq.sendReply;
     this.uploads=new SourceUploads({channel:'qq',db:this.store.db,seal:(v,a)=>this.store.vault.seal(v,a),open:(v,a)=>this.store.vault.open(v,a),clock,
       authorize:id=>this.store.authorizeMessage(id,this.config.principal,this.clock())});
+    this.tasks = new TaskLedger({channel: 'qq', db: this.store.db,
+      seal: (value, aad) => this.store.vault.seal(value, aad), open: (value, aad) => this.store.vault.open(value, aad), clock,
+      authorizeSource: (id, {ownerLookup = false} = {}) => {
+        const message = ownerLookup ? this.store.message(id) : this.store.authorizeMessage(id, config.principal, this.clock());
+        if (ownerLookup && (!message || !this.management.ownerPrivate(message))) throw new BridgeError('Task owner is unavailable.', {code: -32012});
+        return {deadline: message.expires, retainUntil: message.received + (config.textRetentionMs ?? 604800000),
+          scope: message.groupOpenid ? 'configured' : 'owner', replyState: this.experience.replyStatus(id).status};
+      }});
     this.outbox = new OwnerOutbox({channel:'qq',db:this.store.db,seal:(value,aad)=>this.store.vault.seal(value,aad),open:(value,aad)=>this.store.vault.open(value,aad),
       enabled:config.outboundEnabled===true,clock,available:()=>ownerConfigured(this.config),send:args=>this.qq.sendOwnerMessage(args)});
     this.experience = new QqExperience(this);
+    this.queue = new LegacyConversationQueue({store: this.store, policy: config.interaction?.queue, clock, ErrorType: BridgeError,
+      key: message => qqRoute(config,message)?.key, status: id => this.experience.replyStatus(id)});
+    this.store.conversationQueue = this.queue;
+    this.speech=new SourceSpeech({channel:'qq',authorizeRead:id=>this.store.authorizeMessage(id,config.principal,this.clock()),
+      authorize:id=>{this.queue.assertWritable(id);const message=this.store.authorizeMessage(id,config.principal,this.clock());if(message.expires<=this.clock())throw new BridgeError('QQ passive reply window expired');},
+      existing:id=>{
+        if(!this.store.get('SELECT message_id FROM replies WHERE message_id=?',id))return;
+        try{return {digest:JSON.parse(this.store.replyText(id)).sourceAttachmentDigest};}catch{return {digest:null};}
+      },
+      queue:(id,audio)=>this.experience.queueMedia({message_id:id,type:audio.type,name:audio.name,mime_type:audio.mimeType,data:audio.data.toString('base64')},config.principal,this.clock(),audio.speechRequestDigest),
+      status:id=>{const result=this.experience.replyStatus(id);return {message_id:id,status:result.status};},
+      begin:id=>this.tasks.begin(id),recordResult:(id,text,key)=>{const task=this.tasks.begin(id);if(!task.result_available)this.tasks.save(task.task_id,text,key);}});
     this.readVoice = createMediaReader(send);
     this.management=new LegacyManagement({store:this.store,channel:'QQ',enabled:config.authMode==='tunnel-service'&&!config.tunnelServiceReadinessOnly,clock,receiveWithoutSubscription:config.ownerManagementConnection===true,
-      ownerPrivate:message=>message.owner===this.config.ownerOpenid,status:()=>this.runtimeStatus(),
-      sendReply:(message,text,authorize)=>this.qq.sendReply(message,text,{msgSeq:1,authorize})});
+      ownerPrivate:message=>!message.groupOpenid&&message.owner===this.config.ownerOpenid,status:()=>this.runtimeStatus(),
+      tasks: this.tasks,
+      sendReply:(message,text,authorize)=>text.length>2000?this.qq.sendStream(message,text,{msgSeq:1,index:0,done:true,authorize}):this.qq.sendReply(message,text,{msgSeq:1,authorize})});
     this.store.management=this.management;
     this.running = false;
   }
@@ -94,7 +119,7 @@ export class Bridge {
   eventArgs(name, args) {
     if (name !== EVENT_NAME) throw new BridgeError('Unknown event', { code: -32011, data: { kind: 'event' } });
     object(args, ['conversation'], ['conversation']);
-    if (args.conversation !== 'owner') throw new BridgeError('Only the bound owner conversation is available', { code: -32012 });
+    if (!['owner', 'configured'].includes(args.conversation) || (this.config.bridgeMode === 'sites' && args.conversation !== 'owner')) throw new BridgeError('QQ conversation scope is unavailable', { code: -32012 });
   }
   subscriptionId(principal, url, name, args) {
     return `sub_${hash(canonical({ principal, url, name, arguments: args }))}`;
@@ -163,7 +188,7 @@ export class Bridge {
       { oldSecret: existing?.oldSecret, oldSecretUntil: existing?.oldSecretUntil };
     diagnostic.stage='persist';
     this.store.saveSubscription({ id, principal: principal.id, url: params.delivery.url, secret: params.delivery.secret,
-      expires, verified_until: verifiedUntil, ...rotation }, this.clock(), expectedEpoch);
+      expires, verified_until: verifiedUntil, scope: params.arguments.conversation, ...rotation }, this.clock(), expectedEpoch);
     return { id, refreshBefore: new Date(expires).toISOString(), cursor: null, truncated: false };
   }
   unsubscribe(params, principal) {
@@ -197,6 +222,20 @@ export class Bridge {
       case 'events/unsubscribe': return this.unsubscribe(params, principal);
       case 'tools/call': {
         object(params, ['name', 'arguments', '_meta'], ['name', 'arguments']);
+        if(isSpeechTool('qq',params.name)){
+          if(principal.id!==this.config.principal)throw new BridgeError('Speech principal is unavailable.',{code:-32012});
+          try{validateSpeechArguments('qq',params.name,params.arguments);return toolResult(params.name==='check_qq_speech'?this.speech.check():await this.speech.reply(params.arguments));}
+          catch(error){if(error instanceof CoreBridgeError)throw new BridgeError(error.message,{status:error.status,code:error.code});throw error;}
+        }
+        if (typeof params.arguments?.message_id === 'string' && toolDefinitions.find(tool=>tool.name===params.name)?.annotations.readOnlyHint === false) this.queue.assertWritable(params.arguments.message_id);
+        if (isTaskTool('qq', params.name)) {
+          if (principal.id !== this.config.principal) throw new BridgeError('Task principal is unavailable.', {code: -32012});
+          try { return toolResult(this.tasks.call(params.name, params.arguments)); }
+          catch (error) {
+            if (error instanceof CoreBridgeError) throw new BridgeError('QQ task request refused.', {status: error.status, code: error.code});
+            throw error;
+          }
+        }
         if(isChoiceTool('qq',params.name)){
           const args=validateChoiceArguments('qq',params.name,params.arguments);
           const message=this.store.authorizeMessage(args.message_id,principal.id,this.clock());
@@ -225,7 +264,7 @@ export class Bridge {
         if (params.name === 'get_qq_message') {
           object(params.arguments, ['message_id'], ['message_id']); string(params.arguments.message_id, 256);
           const message = this.store.authorizeMessage(params.arguments.message_id, principal.id, this.clock());
-          return toolResult({ message_id: message.id, text: message.text, reply_deadline: new Date(message.expires).toISOString(), reply: this.experience.replyStatus(message.id),
+          return toolResult({ message_id: message.id, text: this.queue.text(message), ...(this.queue.members(message.id).length>1?{source_message_ids:this.queue.members(message.id)}:{}), reply_deadline: new Date(message.expires).toISOString(), reply: this.experience.replyStatus(message.id),
             ...(message.attachments.length ? { attachments: mediaMetadata(message.attachments) } : {}),...(this.store.quote(message)?{quote:this.store.quote(message)}:{}) });
         }
         if (params.name === 'get_qq_attachment') {
@@ -259,7 +298,9 @@ export class Bridge {
         if (params.name === 'reply_qq_attachment') return toolResult(await this.replyAttachment(params.arguments,principal));
         if (params.name === 'begin_qq_reply') {
           object(params.arguments, ['message_id'], ['message_id']); string(params.arguments.message_id, 256);
-          return toolResult(this.experience.begin(params.arguments.message_id, principal.id, this.clock()));
+          const result = this.experience.begin(params.arguments.message_id, principal.id, this.clock());
+          if (this.store.message(params.arguments.message_id).expires > this.clock()) this.tasks.begin(params.arguments.message_id);
+          return toolResult(result);
         }
         if (params.name === 'append_qq_reply') {
           object(params.arguments, ['message_id', 'sequence', 'text'], ['message_id', 'sequence', 'text']); string(params.arguments.message_id, 256);
@@ -276,6 +317,7 @@ export class Bridge {
     }
   }
   async tick() {
+    this.tasks.purge();
     if (this.config.tunnelServiceReadinessOnly) return false;
     if (this.running) return false;
     this.running = true;
@@ -284,22 +326,25 @@ export class Bridge {
       if(await this.management.tick())return true;
       if (await this.outbox.tick()) return true;
       const now = this.clock();
+      this.queue.prepare();
       job = this.store.claim(now);
       if (!job) return false;
       const message = this.store.message(job.message_id), subscription = this.store.subscription(job.subscription_id);
       if (!this.ready() || !subscription?.active || subscription.expires <= now || subscription.principal !== this.config.principal ||
-          message.principal !== this.config.principal || message.owner !== this.config.ownerOpenid || message.generation !== subscription.generation) {
+          message.principal !== this.config.principal || !qqRoute(this.config, message) ||
+          (message.groupOpenid && subscription.scope !== 'configured') || message.generation !== subscription.generation) {
         this.store.finish(job, 'cancelled', 'authorization_inactive'); return true;
       }
       if (message.expires <= now || message.text === null) { this.store.finish(job, 'expired', 'reply_window_expired'); return true; }
       if (job.attempts > this.config.maxAttempts) { this.store.finish(job, 'dead', 'attempt_limit'); return true; }
       if (job.kind === 'event') {
+        if (!this.queue.canDispatch(message)) {this.store.finish(job,'pending',null,now+500);this.store.run('UPDATE jobs SET attempts=attempts-1 WHERE id=?',job.id);return true;}
         const event = { eventId: message.event_id, name: EVENT_NAME, timestamp: message.occurred_at,
-          data: { message_id: message.id, conversation: 'owner', text: message.text, reply_deadline: new Date(message.expires).toISOString(),
+          data: { message_id: message.id, conversation: message.groupOpenid ? 'configured' : 'owner', text: this.queue.text(message), reply_deadline: new Date(message.expires).toISOString(),
             ...(message.attachments.length ? { attachments: message.attachments.length } : {}) }, cursor: null };
         const body = Buffer.from(JSON.stringify(event));
         if (body.length > 262144) throw new BridgeError('Event exceeds payload limit');
-        this.store.run('UPDATE messages SET attempted_at=? WHERE id=?', now, message.id);
+        this.queue.markAttempted(message,now);
         const response = await this.send(subscription.url, { purpose: 'callback', hosts: this.config.callbackHosts, headers: webhookHeaders(subscription, event.eventId, body, this.clock()), body,
           beforeConnect: () => this.authorizeJob(job) });
         if (response.status >= 200 && response.status < 300) this.store.finish(job, 'delivered');

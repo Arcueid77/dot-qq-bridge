@@ -5,6 +5,10 @@ import { readServiceKey } from './tunnel-service-auth.js';
 import { readQqCredentials } from './credential-store.js';
 import { validateTunnelServiceOperation } from './tunnel-service-operation.js';
 import {outboundEnabled} from '@dot-bridge/core/channels/outbound.js';
+import {readPrivateFile} from '@dot-bridge/core/platform/private-files.js';
+import {interactionPolicy} from '@dot-bridge/core/channels/experience-policy.js';
+import {qqRoutingChannel} from './qq-routing.js';
+import {speechConfiguration} from '@dot-bridge/core/audio/synthesis.js';
 
 function number(env, key, fallback, min, max) {
   const value = env[key] ? Number(env[key]) : fallback;
@@ -12,12 +16,21 @@ function number(env, key, fallback, min, max) {
   return value;
 }
 export function readConfig(env = process.env) {
+  speechConfiguration(env);
   const ownerOutbound = outboundEnabled(env);
   const mode = env.AUTH_MODE || 'deny';
   const operation = env.TUNNEL_SERVICE_OPERATION || 'readiness';
+  let interaction = interactionPolicy({}, qqRoutingChannel);
+  if (env.DOT_BRIDGE_INTERACTION_POLICY_FILE) {
+    if (mode !== 'tunnel-service' || operation !== 'live') throw new Error('QQ group policy requires the live Tunnel runtime.');
+    const bytes = readPrivateFile(env.DOT_BRIDGE_INTERACTION_POLICY_FILE, {maxBytes: 65536});
+    try { interaction = interactionPolicy(JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes)), qqRoutingChannel); }
+    finally { bytes.fill(0); }
+  }
   if (!['deny', 'dev', 'oauth', 'sites', 'tunnel-service'].includes(mode)) throw new Error('Invalid AUTH_MODE');
   const config = {
     outboundEnabled: ownerOutbound,
+    interaction,
     bridgeMode: env.BRIDGE_MODE || 'tunnel',
     sitesOrigin: env.SITES_ORIGIN || '', sitesBindingId: env.SITES_BINDING_ID || '',
     sitesPlatformToken: env.SITES_SERVICE_CREDENTIAL || '', sitesConnectorToken: env.SITES_CONNECTOR_CREDENTIAL || '',

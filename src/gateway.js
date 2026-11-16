@@ -135,7 +135,7 @@ export class QqGateway {
       return; // Already durably accepted or deliberately rejected in this session.
     }
     const checkpoint = this.checkpoint(payload.s);
-    if (payload.t === 'C2C_MESSAGE_CREATE') {
+    if (['C2C_MESSAGE_CREATE', 'GROUP_AT_MESSAGE_CREATE'].includes(payload.t)) {
       const verified = { ...payload, id: payload.id ?? `gw_${hash(`${this.session.sessionId}:${payload.s}`)}` };
       try { this.bridge.acceptQq(verified, `gateway:${verified.id}`, checkpoint); }
       catch (error) {

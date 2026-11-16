@@ -20,7 +20,7 @@ function json(res, status, value, headers = {}) {
 async function readBody(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) throw new BridgeError('Expected application/json', { status: 415 });
   if (req.headers['content-encoding'] && req.headers['content-encoding'] !== 'identity') throw new BridgeError('Compressed bodies are unsupported', { status: 415 });
-  const limit = req.url === '/mcp' && req.headers['mcp-name']==='append_qq_attachment_upload'?UPLOAD_RPC_BYTES:req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?MEDIA_RPC_LIMIT:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply'].includes(req.headers['mcp-name']) ? 262144 : 32768;
+  const limit = req.url === '/mcp' && req.headers['mcp-name']==='append_qq_attachment_upload'?UPLOAD_RPC_BYTES:req.url === '/mcp' && req.headers['mcp-name']==='reply_qq_media'?MEDIA_RPC_LIMIT:req.url === '/mcp' && ['reply_to_qq', 'append_qq_reply', 'save_qq_task_result'].includes(req.headers['mcp-name']) ? 262144 : 32768;
   if (Number(req.headers['content-length']) > limit) throw new BridgeError('Request too large', { status: 413 });
   let timer;
   const read = (async () => {
@@ -172,7 +172,7 @@ export function createApp(config, { clock = Date.now, send, worker = true, appro
         await gateway?.stop();
         await listenPromise?.catch(() => {});
         await new Promise(resolve => server.close(resolve));
-        await lastTick; await bridge.outbox.close(); bridge.store.close();
+        await lastTick; await bridge.speech.close(); await bridge.outbox.close(); bridge.store.close();
       })();
       return closePromise;
     }
