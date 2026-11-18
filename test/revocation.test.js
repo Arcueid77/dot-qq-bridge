@@ -51,6 +51,42 @@ test('QQ success already in flight is recorded after unsubscribe without any sub
   assert.equal(f.app.bridge.store.message('fixture-message-1').outbound_id, 'ack-already-in-flight');
   assert.equal(f.requests.filter(r => r.url.includes('/v2/users/')).length, 1);
 });
+test('QQ retains an unknown provider receipt when its subscription is revoked during send',async t=>{
+  const entered=gate(), release=gate();
+  let attempts=0;
+  const f=await harness({sendOverride:async url=>{
+    if(url.includes('/v2/users/')){
+      attempts++;entered.open();await release.promise;
+      throw Error('Synthetic missing provider acknowledgement');
+    }
+  }});
+  t.after(async()=>{release.open();await f.close();});
+  await prepare(f);
+  const work=f.app.bridge.tick();await entered.promise;
+  await unsubscribe(f);release.open();await work;
+  assert.equal(f.app.bridge.store.replyStatus('fixture-message-1').status,'uncertain');
+  await f.app.bridge.tick();assert.equal(attempts,1);
+});
+
+test('QQ ignores gone responses from a replaced subscription generation',async t=>{
+  const entered=gate(), release=gate();
+  const f=await harness({sendOverride:async(url,options)=>{
+    if(url.includes('receiver.example.com')&&JSON.parse(options.body).eventId){
+      entered.open();await release.promise;return {status:410,body:Buffer.from('{}')};
+    }
+  }});
+  t.after(async()=>{release.open();await f.close();});
+  await f.subscribe();await f.postQq();
+  const store=f.app.bridge.store, old=store.activeSubscription(f.now());
+  const work=f.app.bridge.tick();await entered.promise;
+  await unsubscribe(f);
+  assert.equal((await f.subscribe()).status,200);
+  const current=store.activeSubscription(f.now());
+  assert.equal(current.id,old.id);assert.notEqual(current.generation,old.generation);
+  release.open();await work;
+  assert.equal(store.activeSubscription(f.now()).generation,current.generation);
+});
+
 test('graceful shutdown waits for the active timer worker even after skipped intervals', async t => {
   const entered = gate(), release = gate(); let closing;
   const f = await harness({ worker: true, overrides: { workerIntervalMs: 5 }, sendOverride: async (url, options) => {

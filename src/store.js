@@ -142,11 +142,17 @@ export class Store {
       this.bumpSubscriptionEpoch();
     });
   }
-  unsubscribe(id) {
+  unsubscribe(id, expected) {
     this.tx(() => {
+      if (expected) {
+        const current = this.get('SELECT active,generation,callback FROM subscriptions WHERE id=?', id);
+        if (!current?.active || current.generation !== expected.generation || current.callback !== expected.callback) return;
+      }
       this.bumpSubscriptionEpoch();
       this.run('UPDATE subscriptions SET active=0 WHERE id=? AND principal=?', id, this.config.principal);
-      this.run("UPDATE jobs SET state='cancelled',last_error='unsubscribed',lease_token=NULL WHERE subscription_id=? AND state IN ('pending','processing')", id);
+      // A claimed job still owns its outcome. Its next authorization check
+      // stops new requests, while an in-flight request retains its receipt.
+      this.run("UPDATE jobs SET state='cancelled',last_error='unsubscribed',lease_token=NULL WHERE subscription_id=? AND state='pending'", id);
     });
   }
   rate(kind, limit, now) {
